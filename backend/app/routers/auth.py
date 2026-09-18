@@ -47,14 +47,18 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
         
+    role_str = (req.role or "student").lower()
+    role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+    sem_val = req.sem if req.sem is not None else getattr(req, "semester", None)
+
     user = User(
         username=req.username,
         email=req.email,
         hashed_password=auth_service.hash_password(req.password),
-        role=req.role if req.role else UserRole.student,
+        role=role_val,
         mobile_number=req.mobile_number,
         usn=req.usn,
-        sem=req.sem
+        sem=sem_val
     )
     db.add(user)
     await db.commit()

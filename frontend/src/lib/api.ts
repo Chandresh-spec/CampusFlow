@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from './auth';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '',
 });
 
 api.interceptors.request.use((config) => {
@@ -29,7 +29,7 @@ api.interceptors.response.use(
       
       if (refreshToken) {
         try {
-          const response = await axios.post(`${api.defaults.baseURL}/api/auth/refresh/`, { refresh_token: refreshToken });
+          const response = await axios.post(`${api.defaults.baseURL || ''}/api/auth/refresh/`, { refresh: refreshToken });
           setTokens(response.data.access, response.data.refresh);
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
           return api(originalRequest);

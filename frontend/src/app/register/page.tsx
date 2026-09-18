@@ -17,19 +17,20 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload: any = { ...formData, role };
-      if (role !== 'Student') {
+      const payload: any = { ...formData, role: role.toLowerCase() };
+      if (role.toLowerCase() !== 'student') {
         delete payload.usn;
         delete payload.semester;
+        delete payload.sem;
       } else {
-        payload.semester = parseInt(payload.semester);
+        payload.sem = parseInt(formData.semester) || 1;
       }
       
       await api.post('/api/register/', payload);
       toast.success('Registration successful! Please login.');
-      setTimeout(() => router.push('/login'), 2000);
+      setTimeout(() => router.push('/login'), 1500);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(err.response?.data?.detail || err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }

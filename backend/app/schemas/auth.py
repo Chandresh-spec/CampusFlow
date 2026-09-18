@@ -10,10 +10,11 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
-    role: str
+    role: str = "student"
     mobile_number: Optional[str] = None
     usn: Optional[str] = None
     sem: Optional[int] = None
+    semester: Optional[int] = None
 
 class TokenResponse(BaseModel):
     access: str

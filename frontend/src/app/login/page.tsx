@@ -28,7 +28,7 @@ export default function Login() {
         router.push('/teacher');
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.detail || err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
