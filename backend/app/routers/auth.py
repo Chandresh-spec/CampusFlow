@@ -15,6 +15,17 @@ from app.schemas.auth import (
 
 router = APIRouter(prefix="/api", tags=["auth"])
 
+def format_user_dict(u: User) -> dict:
+    return {
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+        "mobile_number": u.mobile_number,
+        "usn": u.usn,
+        "sem": u.sem,
+    }
+
 @router.post("/login/", response_model=Dict[str, Any])
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.username == req.username))
@@ -34,7 +45,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     
     return {
         "message": "Login successful",
-        "user": user,
+        "user": format_user_dict(user),
         "tokens": {
             "access": access,
             "refresh": refresh
@@ -69,7 +80,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     
     return {
         "message": "Registration successful",
-        "user": user,
+        "user": format_user_dict(user),
         "tokens": {
             "access": access,
             "refresh": refresh
@@ -173,7 +184,7 @@ async def verify_register(req: VerifyRegisterRequest, db: AsyncSession = Depends
     
     return {
         "message": "Registration successful",
-        "user": user,
+        "user": format_user_dict(user),
         "tokens": {
             "access": access,
             "refresh": refresh
