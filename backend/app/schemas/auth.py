@@ -57,3 +57,4 @@ class RefreshTokenRequest(BaseModel):
 
 class RefreshTokenResponse(BaseModel):
     access: str
+    refresh: Optional[str] = None

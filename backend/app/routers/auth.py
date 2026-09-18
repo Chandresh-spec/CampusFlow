@@ -92,7 +92,7 @@ async def refresh_token(req: RefreshTokenRequest):
     try:
         user_id = auth_service.decode_refresh_token(req.refresh)
         access = auth_service.create_access_token(user_id=user_id)
-        return {"access": access}
+        return {"access": access, "refresh": req.refresh}
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 

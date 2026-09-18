@@ -30,18 +30,18 @@ api.interceptors.response.use(
       if (refreshToken) {
         try {
           const response = await axios.post(`${api.defaults.baseURL || ''}/api/auth/refresh/`, { refresh: refreshToken });
-          setTokens(response.data.access, response.data.refresh);
+          setTokens(response.data.access, response.data.refresh || refreshToken);
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
           return api(originalRequest);
         } catch (refreshError) {
           clearTokens();
-          if (typeof window !== 'undefined') {
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
             window.location.href = '/login';
           }
         }
       } else {
         clearTokens();
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
       }
