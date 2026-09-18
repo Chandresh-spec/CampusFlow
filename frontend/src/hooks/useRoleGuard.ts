@@ -23,7 +23,7 @@ export const useRoleGuard = (allowedRoles: string[]) => {
   }, [user, isAuthenticated, allowedRoles, router]);
 
   return { 
-    isAuthorized: isAuthenticated && user && allowedRoles.includes(user.role.toLowerCase()),
+    isAuthorized: Boolean(isAuthenticated && user && allowedRoles.includes(user.role.toLowerCase())),
     isLoading: !user 
   };
 };

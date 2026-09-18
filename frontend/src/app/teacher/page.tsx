@@ -15,7 +15,7 @@ export default function TeacherDashboard() {
       const res = await api.get('/resource/api/faculty/dashboard/');
       return res.data;
     },
-    enabled: isAuthorized
+    enabled: Boolean(isAuthorized)
   });
 
   if (isLoading || !isAuthorized) return null;

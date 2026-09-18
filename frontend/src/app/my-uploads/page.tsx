@@ -22,7 +22,7 @@ export default function MyUploads() {
       const res = await api.get('/resource/api/resources/');
       return res.data;
     },
-    enabled: isAuthorized
+    enabled: Boolean(isAuthorized)
   });
 
   const { data: subjects } = useQuery({
@@ -31,7 +31,7 @@ export default function MyUploads() {
       const res = await api.get('/academic/api/subjects/');
       return res.data;
     },
-    enabled: isAuthorized && isModalOpen
+    enabled: Boolean(isAuthorized && isModalOpen)
   });
 
   const deleteMutation = useMutation({

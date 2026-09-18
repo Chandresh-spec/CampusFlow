@@ -27,7 +27,7 @@ export default function Notices() {
       const res = await api.get('/notice/api/notices/');
       return res.data;
     },
-    enabled: isAuthorized
+    enabled: Boolean(isAuthorized)
   });
 
   const createMutation = useMutation({

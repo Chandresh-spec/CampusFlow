@@ -22,7 +22,7 @@ export default function StudentDashboard() {
       const res = await api.get(endpoint);
       return res.data;
     },
-    enabled: isAuthorized
+    enabled: Boolean(isAuthorized)
   });
 
   if (isLoading || !isAuthorized) return null;
