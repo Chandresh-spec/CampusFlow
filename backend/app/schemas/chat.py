@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 class AnonRoomResponse(BaseModel):
     id: int
@@ -25,14 +25,43 @@ class SendMessageRequest(BaseModel):
     content: str
 
 class GenAIRequest(BaseModel):
-    question: str
+    question: Optional[str] = None
+    prompt: Optional[str] = None
+
+    @model_validator(mode="after")
+    def populate_question(self):
+        if not self.question and self.prompt:
+            self.question = self.prompt
+        if not self.question:
+            self.question = ""
+        return self
 
 class GenAIResponse(BaseModel):
     answer: str
+    response: Optional[str] = None
+
+    @model_validator(mode="after")
+    def populate_response(self):
+        if not self.response:
+            self.response = self.answer
+        return self
 
 class RAGChatRequest(BaseModel):
-    question: str
-    subject_id: str
+    question: Optional[str] = None
+    prompt: Optional[str] = None
+    subject_id: Optional[Union[str, int]] = "1"
+
+    @model_validator(mode="after")
+    def populate_fields(self):
+        if not self.question and self.prompt:
+            self.question = self.prompt
+        if not self.question:
+            self.question = ""
+        if self.subject_id is not None:
+            self.subject_id = str(self.subject_id)
+        else:
+            self.subject_id = "1"
+        return self
 
 class RAGUploadRequest(BaseModel):
-    subject_id: str
+    subject_id: Optional[Union[str, int]] = "1"

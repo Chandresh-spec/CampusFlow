@@ -3,22 +3,32 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
-import { Send, Bot, FileText, ToggleLeft, ToggleRight, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { Send, Bot, FileText, ToggleLeft, ToggleRight, Sparkles, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import api from '../../lib/api';
 import toast, { Toaster } from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AIAssistant() {
   const { user } = useAuth();
-  const isFaculty = user?.role.toLowerCase() !== 'student';
+  const isFaculty = user?.role?.toLowerCase() !== 'student';
   const [mode, setMode] = useState<'genai'|'rag'>('genai');
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user'|'ai', content: string}[]>([]);
   const [loading, setLoading] = useState(false);
-  const [subjectId, setSubjectId] = useState('1'); // Mock default
+  const [subjectId, setSubjectId] = useState('1');
+  const [uploadedDocName, setUploadedDocName] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: subjects } = useQuery({
+    queryKey: ['subjects'],
+    queryFn: async () => {
+      const res = await api.get('/academic/api/subjects/');
+      return res.data;
+    }
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,16 +46,28 @@ export default function AIAssistant() {
     try {
       let response = '';
       if (mode === 'genai') {
-        const res = await api.post('/Genai/api/genai/', { prompt: userMsg });
-        response = res.data.response;
+        const res = await api.post('/Genai/api/genai/', { 
+          question: userMsg,
+          prompt: userMsg 
+        });
+        response = res.data.response || res.data.answer || 'No response received.';
       } else {
-        const res = await api.post('/Genai/api/chat/', { question: userMsg, subject_id: subjectId });
-        response = res.data.answer;
+        const res = await api.post('/Genai/api/chat/', { 
+          question: userMsg, 
+          prompt: userMsg,
+          subject_id: String(subjectId || '1') 
+        });
+        response = res.data.answer || res.data.response || 'No response received.';
       }
       setMessages(prev => [...prev, { role: 'ai', content: response }]);
-    } catch (err) {
-      toast.error('Failed to get AI response');
-      setMessages(prev => [...prev, { role: 'ai', content: 'Sorry, I encountered an error. Please try again.' }]);
+    } catch (err: any) {
+      console.error('AI assistant error:', err);
+      const errMsg = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to get AI response';
+      toast.error(errMsg);
+      setMessages(prev => [
+        ...prev, 
+        { role: 'ai', content: `⚠️ **Error**: ${errMsg}. Please ensure the backend is running.` }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -57,20 +79,29 @@ export default function AIAssistant() {
     
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('subject_id', subjectId);
+    formData.append('subject_id', String(subjectId || '1'));
     
-    const toastId = toast.loading('Uploading and processing document...');
+    const toastId = toast.loading(`Indexing ${file.name}...`);
     try {
-      await api.post('/Genai/api/upload/', formData);
-      toast.success('Document ready for RAG', { id: toastId });
+      await api.post('/Genai/api/upload/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUploadedDocName(file.name);
+      toast.success('Document indexed successfully!', { id: toastId });
       setMode('rag');
-    } catch (err) {
-      toast.error('Upload failed', { id: toastId });
+      setMessages(prev => [
+        ...prev,
+        { role: 'ai', content: `📄 Successfully indexed **${file.name}**! You can now ask questions based on this document.` }
+      ]);
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      const errMsg = err?.response?.data?.detail || 'Upload and indexing failed';
+      toast.error(errMsg, { id: toastId });
     }
   };
 
   return (
-    <div className={`flex h-screen ${isFaculty ? 'bg-slate-900' : 'bg-slate-900'} relative`}>
+    <div className="flex h-screen bg-slate-900 relative">
       {isFaculty ? <Sidebar /> : <div className="absolute top-0 w-full z-10"><Navbar /></div>}
       <Toaster position="top-right" />
       
@@ -91,13 +122,35 @@ export default function AIAssistant() {
             </button>
           </div>
 
+          <div className="mb-4">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Knowledge Context</label>
+            <select 
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+            >
+              <option value="1">General Knowledge Base</option>
+              {subjects?.map((s: any) => (
+                <option key={s.id} value={String(s.id)}>
+                  [Sem {s.sem?.sem_nmbr || s.sem_id}] {s.sub_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {mode === 'rag' && (
             <div className="mb-4">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Knowledge Base</p>
               <input type="file" accept=".pdf" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-              <button onClick={() => fileInputRef.current?.click()} className="w-full text-sm text-left py-2 px-3 rounded bg-slate-800/50 hover:bg-slate-800 text-blue-400 border border-blue-900/30 border-dashed">
-                + Upload PDF
+              <button onClick={() => fileInputRef.current?.click()} className="w-full text-sm text-left py-2.5 px-3 rounded bg-slate-800/50 hover:bg-slate-800 text-blue-400 border border-blue-900/30 border-dashed flex items-center gap-2">
+                <Plus size={16} /> Upload PDF Notes
               </button>
+              {uploadedDocName && (
+                <div className="mt-2 text-xs text-blue-300 bg-blue-500/10 p-2 rounded border border-blue-500/20 truncate flex items-center gap-1.5">
+                  <CheckCircle2 size={14} className="text-blue-400 shrink-0" />
+                  <span className="truncate">{uploadedDocName}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

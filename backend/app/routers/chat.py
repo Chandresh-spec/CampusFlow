@@ -14,26 +14,33 @@ from app.services import llm_service, s3_service, rag_service
 
 router = APIRouter(prefix="/Genai/api", tags=["chat"])
 
+@router.post("/genai")
 @router.post("/genai/")
 async def genai_query(req: GenAIRequest, user = Depends(get_current_user)):
-    answer = await llm_service.ask_llm('', req.question)
-    return {"answer": answer}
+    query = req.question or req.prompt or ""
+    answer = await llm_service.ask_llm('', query)
+    return {"answer": answer, "response": answer}
 
+@router.post("/upload")
 @router.post("/upload/")
-async def upload_pdf(subject_id: str = Form(...), file: UploadFile = File(...), user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def upload_pdf(subject_id: Optional[str] = Form("1"), file: UploadFile = File(...), user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     try:
         content = await file.read()
-        await rag_service.index_document(str(subject_id), content)
+        await rag_service.index_document(str(subject_id or "1"), content)
         return {"message": "PDF uploaded and indexed successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+        print(f"[RAG] Upload error: {e}")
+        raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
 
+@router.post("/chat")
 @router.post("/chat/")
 async def rag_chat(req: RAGChatRequest, user = Depends(get_current_user)):
-    chunks = await rag_service.search_chunks(req.question, str(req.subject_id), top_k=4)
+    query = req.question or req.prompt or ""
+    target_subject_id = str(req.subject_id or "1")
+    chunks = await rag_service.search_chunks(query, target_subject_id, top_k=4)
     context = "\n\n".join(chunks)
-    answer = await llm_service.ask_llm(context, req.question)
-    return {"answer": answer}
+    answer = await llm_service.ask_llm(context, query)
+    return {"answer": answer, "response": answer}
 
 @router.get("/anon-rooms/")
 async def list_anon_rooms(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

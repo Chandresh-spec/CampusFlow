@@ -58,9 +58,11 @@ export default function Classroom() {
     if (!message.trim()) return;
     try {
       const res = await api.post('/Genai/api/genai/', { 
-        prompt: `Make this message professional for a student classroom: "${message}"` 
+        prompt: `Make this message professional for a student classroom: "${message}"`,
+        question: `Make this message professional for a student classroom: "${message}"`
       });
-      setMessage(res.data.response);
+      const improved = res.data.response || res.data.answer;
+      if (improved) setMessage(improved);
     } catch (err) {
       toast.error('AI improvement failed');
     }
