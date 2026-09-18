@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, or_
 from sqlalchemy.orm import selectinload
@@ -18,6 +18,83 @@ from app.schemas.resource import (
 from app.services import s3_service, sqs_service
 
 router = APIRouter(prefix="/resource/api", tags=["resource"])
+
+@router.post("/upload-direct")
+@router.post("/upload-direct/")
+async def upload_direct(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    subject_id: int = Form(...),
+    file_type: Optional[str] = Form("PDF"),
+    user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    content = await file.read()
+    file_size = len(content)
+    unique_id = uuid.uuid4().hex
+    safe_filename = file.filename.replace(" ", "_") if file.filename else "uploaded_file"
+    s3_key = f"resources/{unique_id}_{safe_filename}"
+    
+    content_type = file.content_type or "application/octet-stream"
+    try:
+        await s3_service.upload_file_bytes(s3_key, content, content_type)
+    except Exception as e:
+        print(f"[S3] Direct upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"S3 upload error: {str(e)}")
+
+    s3_url = ""
+    try:
+        s3_url = await s3_service.generate_presigned_download_url(s3_key)
+    except Exception:
+        s3_url = ""
+
+    raw_ft = (file_type or "PDF").upper().strip()
+    if raw_ft in ["PDF", "PPT", "DOC", "IMG"]:
+        ft_enum = FileType[raw_ft]
+    elif "NOTE" in raw_ft or "TXT" in raw_ft or "ASSIGN" in raw_ft or "PYQ" in raw_ft:
+        ft_enum = FileType.PDF
+    elif "WORD" in raw_ft or "DOC" in raw_ft:
+        ft_enum = FileType.DOC
+    elif "PRESENT" in raw_ft or "PPT" in raw_ft:
+        ft_enum = FileType.PPT
+    elif "IMAGE" in raw_ft or "PNG" in raw_ft or "JPG" in raw_ft:
+        ft_enum = FileType.IMG
+    else:
+        ft_enum = FileType.PDF
+
+    is_auto_approve = user.role in [UserRole.faculty, UserRole.admin]
+    status_val = ResourceStatus.APPROVED if is_auto_approve else ResourceStatus.PENDING
+
+    resource = Resource(
+        title=title,
+        description=description or "",
+        s3_key=s3_key,
+        s3_url=s3_url,
+        file_type=ft_enum,
+        file_size=file_size,
+        subject_id=subject_id,
+        uploaded_by_id=user.id,
+        status=status_val,
+        is_official=is_auto_approve
+    )
+    db.add(resource)
+    await db.commit()
+    await db.refresh(resource)
+
+    if resource.file_type == FileType.PDF and resource.s3_key:
+        try:
+            msg = {
+                "action": "index_pdf",
+                "s3_key": resource.s3_key,
+                "subject_id": resource.subject_id,
+                "resource_id": resource.id
+            }
+            await sqs_service.send_message(msg)
+        except Exception:
+            pass
+
+    return resource
 
 @router.post("/s3/presign-upload")
 @router.post("/s3/presign-upload/")

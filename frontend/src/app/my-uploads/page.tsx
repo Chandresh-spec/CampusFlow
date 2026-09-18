@@ -97,15 +97,16 @@ export default function MyUploads() {
     }
 
     setUploading(true);
+    let uploadedSuccessfully = false;
+
+    // 1. Attempt client-side direct S3 PUT upload
     try {
-      // 1. Request presigned upload URL from backend
       const presignRes = await api.post('/resource/api/s3/presign-upload', {
         filename: file.name,
         content_type: file.type || 'application/octet-stream'
       });
       const { upload_url, s3_key } = presignRes.data;
 
-      // 2. Direct upload to AWS S3 via PUT request
       const uploadResp = await fetch(upload_url, {
         method: 'PUT',
         body: file,
@@ -114,20 +115,45 @@ export default function MyUploads() {
         }
       });
 
-      if (!uploadResp.ok) {
-        throw new Error(`S3 upload returned status ${uploadResp.status}`);
+      if (uploadResp.ok) {
+        await api.post('/resource/api/resources/', {
+          title: uploadData.title,
+          description: uploadData.description,
+          subject_id: Number(uploadData.subject_id),
+          file_type: uploadData.file_type || 'PDF',
+          file_size: file.size,
+          s3_key: s3_key
+        });
+        uploadedSuccessfully = true;
       }
+    } catch (s3Err) {
+      console.warn("Direct S3 PUT upload blocked (likely S3 bucket CORS), using backend upload fallback...", s3Err);
+    }
 
-      // 3. Register resource record in backend
-      await api.post('/resource/api/resources/', {
-        title: uploadData.title,
-        description: uploadData.description,
-        subject_id: Number(uploadData.subject_id),
-        file_type: uploadData.file_type || 'PDF',
-        file_size: file.size,
-        s3_key: s3_key
-      });
+    // 2. Fallback: upload directly via backend API if S3 CORS blocked direct PUT
+    if (!uploadedSuccessfully) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', uploadData.title);
+        if (uploadData.description) formData.append('description', uploadData.description);
+        formData.append('subject_id', String(uploadData.subject_id));
+        formData.append('file_type', uploadData.file_type || 'PDF');
 
+        await api.post('/resource/api/upload-direct/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        uploadedSuccessfully = true;
+      } catch (backendErr: any) {
+        console.error('Backend upload fallback failed:', backendErr);
+        const errMsg = backendErr?.response?.data?.detail || backendErr?.message || 'Upload failed';
+        toast.error(errMsg);
+        setUploading(false);
+        return;
+      }
+    }
+
+    if (uploadedSuccessfully) {
       toast.success('Media uploaded successfully!');
       setIsModalOpen(false);
       setUploadData({ title: '', description: '', subject_id: '', file_type: 'PDF' });
@@ -135,13 +161,8 @@ export default function MyUploads() {
       setFile(null);
       queryClient.invalidateQueries({ queryKey: ['myResources'] });
       queryClient.invalidateQueries({ queryKey: ['facultyDashboard'] });
-    } catch (err: any) {
-      console.error('Upload failed:', err);
-      const errMsg = err?.response?.data?.detail || err?.message || 'Upload failed';
-      toast.error(errMsg);
-    } finally {
-      setUploading(false);
     }
+    setUploading(false);
   };
 
   if (isLoading || !isAuthorized) return null;
