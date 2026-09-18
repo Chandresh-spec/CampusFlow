@@ -1,38 +1,48 @@
 services:
-  web:
-    build: .
-    container_name: smart_college_app
+  # ── FastAPI Backend ─────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart_college_backend
     restart: always
     ports:
       - "8000:8000"
     env_file:
-      - .env
-    volumes:
-      - media_volume:/app/Home/media
-      - static_volume:/app/Home/staticfiles
+      - ./backend/.env
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Next.js Frontend ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smart_college_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
-      db:
+      backend:
         condition: service_healthy
 
-  db:
-    image: postgres:16-alpine
-    container_name: smart_college_db
+  # ── Nginx Reverse Proxy ─────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: smart_college_nginx
     restart: always
-    environment:
-      POSTGRES_DB: smart_college_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
-  media_volume:
-  static_volume:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend

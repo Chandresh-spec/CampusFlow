@@ -1,8 +1,0 @@
-[build]
-builder = "nixpacks"
-buildCommand = "bash ./build.sh"
-
-[deploy]
-startCommand = "cd Home && python manage.py migrate --no-input && gunicorn Home.wsgi:application --bind 0.0.0.0:$PORT --workers 1"
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3

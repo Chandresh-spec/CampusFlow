@@ -1,0 +1,48 @@
+"""
+Application configuration loaded from environment variables.
+"""
+
+from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+
+class Settings(BaseSettings):
+    # ── JWT ──────────────────────────────────────────
+    SECRET_KEY: str = "change-me"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 50
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # ── Database (AWS RDS) ───────────────────────────
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/smart_college_db"
+
+    # ── AWS S3 ───────────────────────────────────────
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_REGION: str = "ap-southeast-2"
+    S3_BUCKET_NAME: str = ""
+
+    # ── AWS SQS ──────────────────────────────────────
+    SQS_QUEUE_URL: str = ""
+
+    # ── Email (SMTP) ─────────────────────────────────
+    EMAIL_HOST_USER: str = ""
+    EMAIL_HOST_PASSWORD: str = ""
+    DEFAULT_FROM_EMAIL: str = ""
+
+    # ── AI / HuggingFace ─────────────────────────────
+    HUGGINGFACE_API_KEY: str = ""
+
+    # ── CORS ─────────────────────────────────────────
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()

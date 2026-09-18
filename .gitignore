@@ -4,32 +4,15 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
+dist/
+build/
 
 # Virtual environments
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
 .venv/
+venv/
+ENV/
 
 # IDE
 .vscode/
@@ -39,19 +22,21 @@ venv.bak/
 *~
 .DS_Store
 
-# Database
-db.sqlite3
-*.db
-
 # Environment variables
 .env
 .env.local
-.env.*.local
 
 # Logs
 *.log
-error.log
 
-# Media
-media/pdfs/
-media/resources/
+# Database (local dev only)
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+.next/
+out/
+
+# Docker
+docker-compose.override.yml
