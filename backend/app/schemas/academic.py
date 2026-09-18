@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 class SemesterResponse(BaseModel):
@@ -18,8 +19,6 @@ class SubjectResponse(BaseModel):
     sem: Optional[SemesterResponse] = None
     faculty: Optional[FacultyResponse] = None
     model_config = ConfigDict(from_attributes=True)
-
-from typing import Optional
 
 class SubjectCreateRequest(BaseModel):
     sub_code: str
