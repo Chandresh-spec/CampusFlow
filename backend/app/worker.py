@@ -58,8 +58,12 @@ async def poll_sqs_loop():
             else:
                 await asyncio.sleep(1)
         except Exception as e:
-            logger.error(f"Polling loop exception: {e}")
-            await asyncio.sleep(5)
+            if "AccessDenied" in str(e):
+                logger.warning("SQS AccessDenied: IAM user lacks sqs:ReceiveMessage permission. Worker will retry in 60s...")
+                await asyncio.sleep(60)
+            else:
+                logger.error(f"Polling loop exception: {e}")
+                await asyncio.sleep(10)
 
 if __name__ == "__main__":
     asyncio.run(poll_sqs_loop())
