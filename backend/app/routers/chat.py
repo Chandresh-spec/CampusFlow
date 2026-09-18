@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models.chat import AnonChatRoom, AnonMessage, PDFDocument
 from app.models.academic import Subject, Sem
 from app.models.user import UserRole
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_optional_current_user
 from app.schemas.chat import GenAIRequest, RAGChatRequest, SendMessageRequest
 from app.services import llm_service, s3_service, rag_service
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/Genai/api", tags=["chat"])
 
 @router.post("/genai")
 @router.post("/genai/")
-async def genai_query(req: GenAIRequest, user = Depends(get_current_user)):
+async def genai_query(req: GenAIRequest, user = Depends(get_optional_current_user)):
     query = req.question or req.prompt or ""
     answer = await llm_service.ask_llm('', query)
     return {"answer": answer, "response": answer}
@@ -34,7 +34,7 @@ async def upload_pdf(subject_id: Optional[str] = Form("1"), file: UploadFile = F
 
 @router.post("/chat")
 @router.post("/chat/")
-async def rag_chat(req: RAGChatRequest, user = Depends(get_current_user)):
+async def rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user)):
     query = req.question or req.prompt or ""
     target_subject_id = str(req.subject_id or "1")
     chunks = await rag_service.search_chunks(query, target_subject_id, top_k=4)

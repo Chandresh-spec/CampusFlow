@@ -2,6 +2,7 @@
 Auth dependencies for FastAPI — JWT decoding, current user extraction, role checks.
 """
 
+from typing import Optional
 from datetime import datetime
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -15,6 +16,31 @@ from app.models.user import User
 
 settings = get_settings()
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """Decode JWT token if present, returning User or None if token missing/invalid."""
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id_raw = payload.get("sub")
+        token_type = payload.get("type", "access")
+        if user_id_raw is None or token_type != "access":
+            return None
+        user_id = int(user_id_raw)
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if user and user.is_active:
+            return user
+        return None
+    except Exception:
+        return None
 
 
 async def get_current_user(
