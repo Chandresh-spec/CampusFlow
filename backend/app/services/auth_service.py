@@ -39,4 +39,4 @@ def decode_refresh_token(token: str) -> int:
         raise ValueError("Invalid token")
 
 def get_current_time() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.utcnow()
