@@ -26,7 +26,7 @@ class Subject(Base):
     sub_code = Column(String(20), unique=True, nullable=False, index=True)
     sub_name = Column(String(100), nullable=False)
     sem_id = Column(Integer, ForeignKey("sems.id", ondelete="CASCADE"), nullable=False)
-    faculty_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    faculty_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     sem = relationship("Sem", back_populates="subjects")
     faculty = relationship("User", lazy="joined")

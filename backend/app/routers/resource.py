@@ -20,59 +20,104 @@ from app.services import s3_service, sqs_service
 router = APIRouter(prefix="/resource/api", tags=["resource"])
 
 @router.post("/s3/presign-upload")
+@router.post("/s3/presign-upload/")
 async def presign_upload(req: PresignRequest, user = Depends(get_current_user)):
     folder = req.folder if req.folder else "resources"
+    filename = req.filename or req.file_name or "uploaded_file"
+    content_type = req.content_type or req.file_type or "application/octet-stream"
     unique_id = uuid.uuid4().hex
-    s3_key = f"{folder}/{unique_id}_{req.filename}"
-    upload_url = await s3_service.generate_presigned_upload_url(s3_key, req.content_type)
+    s3_key = f"{folder}/{unique_id}_{filename}"
+    upload_url = await s3_service.generate_presigned_upload_url(s3_key, content_type)
     return {"upload_url": upload_url, "s3_key": s3_key}
 
 @router.get("/faculty/dashboard/")
 async def faculty_dashboard(user = Depends(require_role("faculty", "admin")), db: AsyncSession = Depends(get_db)):
-    # Calculate stats for the faculty's resources
     res_query = select(Resource).where(Resource.uploaded_by_id == user.id)
     resources_res = await db.execute(res_query)
     resources = resources_res.scalars().all()
     
     total_resources = len(resources)
     pending_approvals = sum(1 for r in resources if r.status == ResourceStatus.PENDING)
-    # views_today, active_students are placeholders as we don't track daily views in the models exactly
-    # We will use view_count sum as an approximation
     views_today = sum(r.view_count for r in resources)
-    active_students = 0  # placeholder
+    active_students = 0
     
-    recent_query = select(Resource).where(Resource.uploaded_by_id == user.id).order_by(desc(Resource.created_at)).limit(5)
-    recent_res = await db.execute(recent_query.options(selectinload(Resource.subject)))
+    recent_query = (
+        select(Resource)
+        .where(Resource.uploaded_by_id == user.id)
+        .order_by(desc(Resource.created_at))
+        .limit(5)
+        .options(selectinload(Resource.subject))
+    )
+    recent_res = await db.execute(recent_query)
+    recent_list = recent_res.scalars().all()
+    
+    recent_uploads = []
+    for r in recent_list:
+        recent_uploads.append({
+            "id": r.id,
+            "title": r.title,
+            "subject_name": r.subject.sub_name if r.subject else "General",
+            "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+            "view_count": r.view_count,
+            "views": r.view_count,
+            "created_at": r.created_at,
+            "s3_url": r.s3_url or "",
+            "file_size": r.file_size
+        })
     
     return {
         "total_resources": total_resources,
         "views_today": views_today,
         "pending_approvals": pending_approvals,
         "active_students": active_students,
-        "recent_uploads": recent_res.scalars().all()
+        "recent_uploads": recent_uploads
     }
 
 @router.get("/student/dashboard/")
 async def student_dashboard(user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
     if not user.sem:
-        return {"student": user, "recent_resources": [], "activity_stats": {}, "resources_by_subject": []}
+        return {"student": user, "recent_resources": [], "resources": [], "activity_stats": {}, "resources_by_subject": []}
         
     query = (
         select(Resource)
-        .join(Subject)
-        .join(Sem)
+        .join(Subject, Resource.subject_id == Subject.id)
+        .join(Sem, Subject.sem_id == Sem.id)
         .where(Sem.sem_nmbr == user.sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .order_by(desc(Resource.created_at))
         .limit(10)
-        .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
+        .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
     )
     res = await db.execute(query)
     recent = res.scalars().all()
     
+    recent_formatted = []
+    for r in recent:
+        url = r.s3_url
+        if not url and r.s3_key:
+            try:
+                url = await s3_service.generate_presigned_download_url(r.s3_key)
+            except Exception:
+                url = ""
+        recent_formatted.append({
+            "id": r.id,
+            "title": r.title,
+            "description": r.description,
+            "subject_name": r.subject.sub_name if r.subject else "",
+            "faculty_name": r.uploaded_by.username if r.uploaded_by else (r.subject.faculty.username if r.subject and r.subject.faculty else "Faculty"),
+            "file_type": r.file_type.value if hasattr(r.file_type, "value") else str(r.file_type),
+            "file_size": r.file_size,
+            "size": r.file_size,
+            "views": r.view_count,
+            "view_count": r.view_count,
+            "created_at": r.created_at,
+            "s3_url": url
+        })
+        
     return {
         "student": user,
-        "recent_resources": recent,
+        "recent_resources": recent_formatted,
+        "resources": recent_formatted,
         "activity_stats": {"downloads": 0},
         "resources_by_subject": []
     }
@@ -83,12 +128,12 @@ async def student_search(q: str, user = Depends(require_role("student")), db: As
         return []
     query = (
         select(Resource)
-        .join(Subject)
-        .join(Sem)
+        .join(Subject, Resource.subject_id == Subject.id)
+        .join(Sem, Subject.sem_id == Sem.id)
         .where(Sem.sem_nmbr == user.sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .where(Resource.title.ilike(f"%{q}%"))
-        .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
+        .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
     )
     res = await db.execute(query)
     return res.scalars().all()
@@ -99,18 +144,17 @@ async def student_filter(subject: Optional[str] = None, professor: Optional[str]
         return []
     query = (
         select(Resource)
-        .join(Subject)
-        .join(Sem)
+        .join(Subject, Resource.subject_id == Subject.id)
+        .join(Sem, Subject.sem_id == Sem.id)
         .where(Sem.sem_nmbr == user.sem)
         .where(Resource.status == ResourceStatus.APPROVED)
-        .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
+        .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
     )
     if subject:
         query = query.where(Subject.sub_code == subject)
     if type:
         query = query.where(Resource.file_type == type)
     res = await db.execute(query)
-    # professor filter requires joining User, ignoring for brevity or can filter in python
     return res.scalars().all()
 
 @router.get("/student/resources/")
@@ -119,8 +163,8 @@ async def list_student_resources(user = Depends(require_role("student")), db: As
         return []
     query = (
         select(Resource)
-        .join(Subject)
-        .join(Sem)
+        .join(Subject, Resource.subject_id == Subject.id)
+        .join(Sem, Subject.sem_id == Sem.id)
         .where(Sem.sem_nmbr == user.sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
@@ -139,6 +183,11 @@ async def get_student_resource(id: int, user = Depends(require_role("student")),
     resource = res.scalar_one_or_none()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
+    if resource.s3_key and not resource.s3_url:
+        try:
+            resource.s3_url = await s3_service.generate_presigned_download_url(resource.s3_key)
+        except Exception:
+            pass
     return resource
 
 @router.post("/student/resources/{id}/download/")
@@ -149,9 +198,8 @@ async def download_student_resource(id: int, user = Depends(require_role("studen
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
         
-    resource.view_count += 1
+    resource.view_count = (resource.view_count or 0) + 1
     
-    # get_or_create download record
     dl_query = select(ResourceDownload).where(ResourceDownload.resource_id == id, ResourceDownload.student_id == user.id)
     dl_res = await db.execute(dl_query)
     if not dl_res.scalar_one_or_none():
@@ -159,44 +207,124 @@ async def download_student_resource(id: int, user = Depends(require_role("studen
         db.add(dl)
         
     await db.commit()
-    return {"message": "Downloaded"}
+    
+    url = ""
+    if resource.s3_key:
+        try:
+            url = await s3_service.generate_presigned_download_url(resource.s3_key)
+        except Exception:
+            url = resource.s3_url or ""
+    elif resource.reference_url:
+        url = resource.reference_url
+
+    return {"message": "Downloaded", "url": url, "view_count": resource.view_count}
 
 @router.get("/resources/")
-async def list_resources(subject_code: Optional[str] = None, semester: Optional[int] = None, professor: Optional[str] = None, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    query = select(Resource).options(selectinload(Resource.subject).selectinload(Subject.sem), selectinload(Resource.uploaded_by))
+async def list_resources(
+    subject_code: Optional[str] = None,
+    semester: Optional[int] = None,
+    professor: Optional[str] = None,
+    user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    query = select(Resource).options(
+        selectinload(Resource.subject).selectinload(Subject.sem),
+        selectinload(Resource.uploaded_by)
+    )
     
     if user.role == UserRole.student:
         query = query.where(or_(Resource.status == ResourceStatus.APPROVED, Resource.uploaded_by_id == user.id))
     elif user.role == UserRole.faculty:
-        # Assuming faculty sees resources for subjects they teach
-        query = query.join(Subject).where(Subject.faculty_id == user.id)
+        query = query.join(Subject, Resource.subject_id == Subject.id, isouter=True).where(
+            or_(Resource.uploaded_by_id == user.id, Subject.faculty_id == user.id)
+        )
         
-    # Apply filters
     if subject_code:
-        query = query.join(Subject).where(Subject.sub_code == subject_code)
+        query = query.join(Subject, Resource.subject_id == Subject.id, isouter=True).where(Subject.sub_code == subject_code)
     if semester:
-        # Need to join Sem if not already joined via subject_code logic, simplified for here
-        pass
+        query = query.join(Subject, Resource.subject_id == Subject.id, isouter=True).join(Sem, Subject.sem_id == Sem.id, isouter=True).where(Sem.sem_nmbr == semester)
         
+    query = query.order_by(desc(Resource.created_at))
     res = await db.execute(query)
-    return res.scalars().all()
+    resources = res.scalars().all()
+
+    output = []
+    for r in resources:
+        url = r.s3_url
+        if not url and r.s3_key:
+            try:
+                url = await s3_service.generate_presigned_download_url(r.s3_key)
+            except Exception:
+                url = ""
+        output.append({
+            "id": r.id,
+            "title": r.title,
+            "description": r.description or "",
+            "s3_key": r.s3_key,
+            "s3_url": url,
+            "reference_url": r.reference_url,
+            "file_type": r.file_type.value if hasattr(r.file_type, "value") else str(r.file_type),
+            "file_size": r.file_size,
+            "view_count": r.view_count,
+            "views": r.view_count,
+            "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+            "is_official": r.is_official,
+            "created_at": r.created_at,
+            "updated_at": r.updated_at,
+            "subject": r.subject,
+            "subject_name": r.subject.sub_name if r.subject else "",
+            "uploaded_by": r.uploaded_by.username if r.uploaded_by else ""
+        })
+    return output
 
 @router.post("/resources/", status_code=status.HTTP_201_CREATED)
 async def create_resource(req: ResourceCreate, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    # Determine auto-approve
     is_auto_approve = user.role in [UserRole.faculty, UserRole.admin]
     status_val = ResourceStatus.APPROVED if is_auto_approve else ResourceStatus.PENDING
     is_official = is_auto_approve
     
+    target_subject_id = req.subject_id or req.subject
+    if not target_subject_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Subject is required")
+
+    # Normalize file_type
+    raw_ft = (req.file_type or "PDF").upper().strip()
+    if raw_ft in ["PDF", "PPT", "DOC", "IMG"]:
+        ft_enum = FileType[raw_ft]
+    elif "NOTE" in raw_ft or "TXT" in raw_ft or "ASSIGN" in raw_ft or "PYQ" in raw_ft:
+        ft_enum = FileType.PDF
+    elif "WORD" in raw_ft or "DOC" in raw_ft:
+        ft_enum = FileType.DOC
+    elif "PRESENT" in raw_ft or "PPT" in raw_ft:
+        ft_enum = FileType.PPT
+    elif "IMAGE" in raw_ft or "PNG" in raw_ft or "JPG" in raw_ft:
+        ft_enum = FileType.IMG
+    else:
+        ft_enum = FileType.PDF
+
+    f_size = None
+    if req.file_size is not None:
+        try:
+            f_size = int(req.file_size)
+        except (ValueError, TypeError):
+            f_size = None
+
+    s3_url = req.s3_url
+    if not s3_url and req.s3_key:
+        try:
+            s3_url = await s3_service.generate_presigned_download_url(req.s3_key)
+        except Exception:
+            s3_url = ""
+
     resource = Resource(
         title=req.title,
-        description=req.description,
+        description=req.description or "",
         s3_key=req.s3_key,
-        s3_url=req.s3_url,
+        s3_url=s3_url,
         reference_url=req.reference_url,
-        file_type=req.file_type,
-        file_size=req.file_size,
-        subject_id=req.subject_id,
+        file_type=ft_enum,
+        file_size=f_size,
+        subject_id=target_subject_id,
         uploaded_by_id=user.id,
         status=status_val,
         is_official=is_official
@@ -205,17 +333,24 @@ async def create_resource(req: ResourceCreate, user = Depends(get_current_user),
     await db.commit()
     await db.refresh(resource)
     
-    # SQS for PDF
     if resource.file_type == FileType.PDF and resource.s3_key:
-        msg = {
-            "action": "index_pdf",
-            "s3_key": resource.s3_key,
-            "subject_id": resource.subject_id,
-            "resource_id": resource.id
-        }
-        await sqs_service.send_message(msg)
-        
-    return resource
+        try:
+            msg = {
+                "action": "index_pdf",
+                "s3_key": resource.s3_key,
+                "subject_id": resource.subject_id,
+                "resource_id": resource.id
+            }
+            await sqs_service.send_message(msg)
+        except Exception as e:
+            print(f"[SQS] Note on sending message: {e}")
+            
+    res_loaded = await db.execute(
+        select(Resource)
+        .where(Resource.id == resource.id)
+        .options(selectinload(Resource.subject).selectinload(Subject.sem), selectinload(Resource.uploaded_by))
+    )
+    return res_loaded.scalar_one_or_none() or resource
 
 @router.get("/resources/{id}/")
 async def get_resource(id: int, db: AsyncSession = Depends(get_db)):

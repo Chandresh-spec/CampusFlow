@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 50
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # ── Database (AWS RDS) ───────────────────────────
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/smart_college_db"
+    # ── Database (PostgreSQL / SQLite) ───────────────
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:Moger%40123@localhost:5432/studentmanagement_system"
 
     # ── AWS S3 ───────────────────────────────────────
     AWS_ACCESS_KEY_ID: str = ""

@@ -6,17 +6,17 @@ class SemesterResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class FacultyResponse(BaseModel):
-    id: int
-    username: str
-    email: str
+    id: Optional[int] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class SubjectResponse(BaseModel):
     id: int
     sub_code: str
     sub_name: str
-    sem: SemesterResponse
-    faculty: FacultyResponse
+    sem: Optional[SemesterResponse] = None
+    faculty: Optional[FacultyResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
 from typing import Optional

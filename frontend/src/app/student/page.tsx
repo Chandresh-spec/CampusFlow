@@ -66,7 +66,7 @@ export default function StudentDashboard() {
           <p>Loading...</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dashboardData?.resources?.map((res: any) => (
+            {((Array.isArray(dashboardData) ? dashboardData : (dashboardData?.recent_resources || dashboardData?.resources)) || []).map((res: any) => (
               <div key={res.id} className="glass p-6 rounded-2xl flex flex-col hover:border-purple-500/50 transition">
                 <div className="flex items-start justify-between mb-4">
                   <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400">
@@ -75,18 +75,22 @@ export default function StudentDashboard() {
                   <span className="text-xs text-slate-400">{timeAgo(res.created_at)}</span>
                 </div>
                 <h3 className="font-bold text-lg mb-1 line-clamp-1">{res.title}</h3>
-                <p className="text-sm text-slate-400 mb-4">{res.subject_name} • Prof. {res.faculty_name}</p>
+                <p className="text-sm text-slate-400 mb-4">
+                  {res.subject?.sub_name || res.subject_name || 'General'} • Prof. {res.faculty_name || res.uploaded_by?.username || 'Faculty'}
+                </p>
                 <div className="mt-auto flex items-center justify-between">
-                  <span className="text-xs text-slate-500">{formatFileSize(res.size)} • {res.views} views</span>
-                  <button onClick={() => handleDownload(res.id)} className="text-sm bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition">
+                  <span className="text-xs text-slate-500">
+                    {formatFileSize(res.file_size || res.size)} • {res.view_count ?? res.views ?? 0} views
+                  </span>
+                  <button onClick={() => handleDownload(res.id)} className="text-sm bg-purple-600/80 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium transition">
                     View
                   </button>
                 </div>
               </div>
             ))}
-            {(!dashboardData?.resources || dashboardData.resources.length === 0) && (
+            {(!Array.isArray(dashboardData) && (!dashboardData?.recent_resources || dashboardData.recent_resources.length === 0) && (!dashboardData?.resources || dashboardData.resources.length === 0)) || (Array.isArray(dashboardData) && dashboardData.length === 0) ? (
               <p className="text-slate-400 col-span-full">No resources found.</p>
-            )}
+            ) : null}
           </div>
         )}
 

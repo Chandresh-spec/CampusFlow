@@ -80,8 +80,8 @@ export default function TeacherDashboard() {
                       <p className="text-xs text-slate-400">{up.subject_name}</p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${up.status === 'Approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
-                    {up.status}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${up.status?.toUpperCase() === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                    {up.status?.toUpperCase() === 'APPROVED' ? 'Approved' : 'Pending'}
                   </span>
                 </div>
               ))}
