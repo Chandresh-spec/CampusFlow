@@ -38,5 +38,14 @@ def decode_refresh_token(token: str) -> int:
     except JWTError:
         raise ValueError("Invalid token")
 
+def decode_access_token(token: str) -> int:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "access":
+            raise ValueError("Invalid token type")
+        return int(payload.get("sub"))
+    except JWTError:
+        raise ValueError("Invalid token")
+
 def get_current_time() -> datetime:
     return datetime.utcnow()

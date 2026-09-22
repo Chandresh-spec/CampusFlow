@@ -51,6 +51,7 @@ app.include_router(academic.router)
 app.include_router(resource.router)
 app.include_router(notice.router)
 app.include_router(chat.router)
+app.include_router(chat.chat_group_router)
 
 @app.get("/health", tags=["system"])
 async def health_check():

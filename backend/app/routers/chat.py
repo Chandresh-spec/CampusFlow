@@ -1,22 +1,23 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
-from app.database import get_db
+from app.database import get_db, async_session_factory
 from app.models.chat import AnonChatRoom, AnonMessage, PDFDocument, AIChatSession, AIChatMessage
 from app.models.academic import Subject, Sem
-from app.models.user import UserRole
+from app.models.user import User, UserRole
 from app.dependencies import get_current_user, get_optional_current_user
 from app.schemas.chat import (
     GenAIRequest, RAGChatRequest, SendMessageRequest,
     CreateSessionRequest
 )
-from app.services import llm_service, s3_service, rag_service
+from app.services import llm_service, s3_service, rag_service, auth_service
 
 router = APIRouter(prefix="/Genai/api", tags=["chat"])
+chat_group_router = APIRouter(prefix="/api/chat", tags=["chat-groups"])
 
 # ── AI Chat Sessions & History ─────────────────────────────────
 
@@ -233,94 +234,353 @@ async def rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user
 
     return {"answer": answer, "response": answer, "session_id": session_id}
 
+# ── Real-Time Semester-Scoped Group Chat & WebSockets ─────────
+
+class ConnectionManager:
+    """Manages active WebSocket connections per chat room."""
+    def __init__(self):
+        self.active_connections: dict[int, set[WebSocket]] = {}
+
+    async def connect(self, room_id: int, websocket: WebSocket):
+        await websocket.accept()
+        if room_id not in self.active_connections:
+            self.active_connections[room_id] = set()
+        self.active_connections[room_id].add(websocket)
+
+    def disconnect(self, room_id: int, websocket: WebSocket):
+        if room_id in self.active_connections:
+            self.active_connections[room_id].discard(websocket)
+            if not self.active_connections[room_id]:
+                del self.active_connections[room_id]
+
+    async def broadcast(self, room_id: int, message: dict):
+        if room_id in self.active_connections:
+            dead_connections = []
+            for ws in list(self.active_connections[room_id]):
+                try:
+                    await ws.send_json(message)
+                except Exception:
+                    dead_connections.append(ws)
+            for dead in dead_connections:
+                self.disconnect(room_id, dead)
+
+ws_manager = ConnectionManager()
+
+
+async def get_and_verify_room_access(room_id: int, user: User, db: AsyncSession) -> tuple[AnonChatRoom, Subject]:
+    """
+    Verifies user has access to this chat group based on semester.
+    If student, strictly enforces that the group belongs to their semester.
+    """
+    stmt = (
+        select(AnonChatRoom)
+        .where(AnonChatRoom.id == room_id)
+        .options(selectinload(AnonChatRoom.subject).selectinload(Subject.sem))
+    )
+    res = await db.execute(stmt)
+    room = res.scalar_one_or_none()
+    if not room or not room.subject:
+        raise HTTPException(status_code=404, detail="Chat room not found")
+
+    room_sem = room.subject.sem.sem_nmbr if room.subject.sem else None
+
+    # Strict semester isolation for students:
+    if user.role == UserRole.student:
+        student_sem = user.sem or 1
+        if room_sem is not None and room_sem != student_sem:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. This chat group belongs to Semester {room_sem}, but you are enrolled in Semester {student_sem}."
+            )
+
+    return room, room.subject
+
+
+# ── REST: List Chat Groups (Strictly Filtered by Semester) ────
+
+@router.get("/groups/")
 @router.get("/anon-rooms/")
-async def list_anon_rooms(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    rooms = []
-    if user.role == UserRole.faculty:
-        sub_query = select(Subject).where(or_(Subject.faculty_id == user.id, Subject.faculty_id.is_(None)))
-    elif user.sem:
-        sub_query = select(Subject).join(Sem).where(Sem.sem_nmbr == user.sem)
+@chat_group_router.get("/groups/")
+async def list_chat_groups(
+    sem: Optional[int] = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns class chat groups.
+    If student: strictly returns ONLY chat groups of their enrolled semester.
+    If faculty: returns all groups or filtered by query parameter sem.
+    """
+    if user.role == UserRole.student:
+        student_sem = user.sem or 1
+        sub_query = (
+            select(Subject)
+            .join(Sem, Subject.sem_id == Sem.id)
+            .where(Sem.sem_nmbr == student_sem)
+            .options(selectinload(Subject.sem))
+            .order_by(Subject.sub_name)
+        )
     else:
-        sub_query = select(Subject)
-        
+        # Faculty / Admin
+        if sem:
+            sub_query = (
+                select(Subject)
+                .join(Sem, Subject.sem_id == Sem.id)
+                .where(Sem.sem_nmbr == sem)
+                .options(selectinload(Subject.sem))
+                .order_by(Subject.sub_name)
+            )
+        else:
+            sub_query = (
+                select(Subject)
+                .options(selectinload(Subject.sem))
+                .order_by(Subject.sem_id, Subject.sub_name)
+            )
+
     subjects_res = await db.execute(sub_query)
     subjects = subjects_res.scalars().all()
-    
+
+    rooms = []
     for subject in subjects:
         room_query = select(AnonChatRoom).where(AnonChatRoom.subject_id == subject.id)
         room_res = await db.execute(room_query)
         room = room_res.scalar_one_or_none()
-        
+
         if not room:
             room = AnonChatRoom(subject_id=subject.id)
             db.add(room)
             await db.commit()
             await db.refresh(room)
-            
-        msg_count = await db.scalar(select(func.count(AnonMessage.id)).where(AnonMessage.room_id == room.id))
-        last_msg = await db.execute(select(AnonMessage).where(AnonMessage.room_id == room.id).order_by(AnonMessage.created_at.desc()).limit(1))
-        lm = last_msg.scalar_one_or_none()
-        
+
+        msg_count = await db.scalar(
+            select(func.count(AnonMessage.id)).where(AnonMessage.room_id == room.id)
+        )
+        last_msg = (
+            await db.execute(
+                select(AnonMessage)
+                .where(AnonMessage.room_id == room.id)
+                .order_by(AnonMessage.created_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
         rooms.append({
             "id": room.id,
             "subject_id": subject.id,
             "subject_name": subject.sub_name,
             "subject_code": subject.sub_code,
-            "last_message": lm.content if lm else None,
-            "last_time": lm.created_at if lm else None,
-            "message_count": msg_count
+            "semester": subject.sem.sem_nmbr if subject.sem else None,
+            "last_message": last_msg.content if last_msg else None,
+            "last_time": last_msg.created_at.isoformat() if last_msg else None,
+            "message_count": msg_count or 0
         })
-        
+
     return rooms
 
+# ── REST: List Messages with Semester Verification ───────────
+
+@router.get("/groups/{room_id}/messages/")
 @router.get("/anon-rooms/{room_id}/messages/")
-async def list_messages(room_id: int, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    query = select(AnonMessage).where(AnonMessage.room_id == room_id).order_by(AnonMessage.created_at).options(selectinload(AnonMessage.sender))
+@chat_group_router.get("/groups/{room_id}/messages/")
+async def list_messages(
+    room_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns all messages in a group after verifying student semester access."""
+    await get_and_verify_room_access(room_id, user, db)
+
+    query = (
+        select(AnonMessage)
+        .where(AnonMessage.room_id == room_id)
+        .order_by(AnonMessage.created_at)
+        .options(selectinload(AnonMessage.sender))
+    )
     res = await db.execute(query)
     messages = res.scalars().all()
-    
+
     out = []
     for m in messages:
+        sender_role_str = (
+            m.sender.role.value if hasattr(m.sender.role, "value") else str(m.sender.role)
+        ) if m.sender else "student"
+        sender_name = m.sender.username if m.sender else (m.anon_alias or "Student")
+
         out.append({
             "id": m.id,
-            "sender_alias": m.anon_alias,
+            "room_id": room_id,
+            "sender_id": m.sender_id,
+            "sender_name": sender_name,
+            "sender_role": sender_role_str,
             "content": m.content,
-            "is_faculty": m.sender.role == UserRole.faculty,
+            "is_faculty": sender_role_str == "faculty",
             "is_me": m.sender_id == user.id,
-            "created_at": m.created_at
+            "created_at": m.created_at.isoformat() if m.created_at else None
         })
     return out
 
+
+# ── REST: Send Message (and Broadcast to WebSocket) ──────────
+
+@router.post("/groups/{room_id}/messages/", status_code=status.HTTP_201_CREATED)
 @router.post("/anon-rooms/{room_id}/messages/", status_code=status.HTTP_201_CREATED)
-async def send_message(room_id: int, req: SendMessageRequest, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if user.role == UserRole.faculty:
-        alias = f"Prof. {user.username}"
-    else:
-        # Check if they already have an alias in this room
-        existing_res = await db.execute(select(AnonMessage).where(AnonMessage.room_id == room_id, AnonMessage.sender_id == user.id).limit(1))
-        existing = existing_res.scalar_one_or_none()
-        if existing:
-            alias = existing.anon_alias
-        else:
-            # Generate next number
-            # simplistic approach, could do count distinct students in room
-            alias = f"Student #{user.id}"
-            
+@chat_group_router.post("/groups/{room_id}/messages/", status_code=status.HTTP_201_CREATED)
+async def send_message(
+    room_id: int,
+    req: SendMessageRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Sends a message via HTTP, persists to DB, and broadcasts to active WebSockets."""
+    await get_and_verify_room_access(room_id, user, db)
+
     msg = AnonMessage(
         room_id=room_id,
         sender_id=user.id,
         content=req.content,
-        anon_alias=alias
+        anon_alias=user.username
     )
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
-    
+
+    sender_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
+    created_at_iso = msg.created_at.isoformat() if msg.created_at else None
+
+    payload = {
+        "type": "new_message",
+        "message": {
+            "id": msg.id,
+            "room_id": room_id,
+            "sender_id": user.id,
+            "sender_name": user.username,
+            "sender_role": sender_role_str,
+            "content": msg.content,
+            "is_faculty": user.role == UserRole.faculty,
+            "created_at": created_at_iso
+        }
+    }
+    await ws_manager.broadcast(room_id, payload)
+
     return {
         "id": msg.id,
-        "sender_alias": msg.anon_alias,
+        "room_id": room_id,
+        "sender_id": user.id,
+        "sender_name": user.username,
+        "sender_role": sender_role_str,
         "content": msg.content,
         "is_faculty": user.role == UserRole.faculty,
         "is_me": True,
-        "created_at": msg.created_at
+        "created_at": created_at_iso
     }
+
+
+# ── Real-Time WebSocket Endpoint ─────────────────────────────
+
+async def handle_websocket_connection(websocket: WebSocket, room_id: int):
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4001, reason="Authentication token required")
+        return
+
+    try:
+        user_id = auth_service.decode_access_token(token)
+    except Exception:
+        await websocket.close(code=4001, reason="Invalid authentication token")
+        return
+
+    async with async_session_factory() as db:
+        user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+        if not user or not user.is_active:
+            await websocket.close(code=4001, reason="User inactive or not found")
+            return
+
+        stmt = (
+            select(AnonChatRoom)
+            .where(AnonChatRoom.id == room_id)
+            .options(selectinload(AnonChatRoom.subject).selectinload(Subject.sem))
+        )
+        room = (await db.execute(stmt)).scalar_one_or_none()
+        if not room or not room.subject:
+            await websocket.close(code=4004, reason="Chat room not found")
+            return
+
+        room_sem = room.subject.sem.sem_nmbr if room.subject.sem else None
+        if user.role == UserRole.student:
+            student_sem = user.sem or 1
+            if room_sem is not None and room_sem != student_sem:
+                await websocket.close(
+                    code=4003,
+                    reason=f"Access denied: Room is Semester {room_sem}, you are in Semester {student_sem}"
+                )
+                return
+
+        user_name = user.username
+        user_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
+        is_faculty = user.role == UserRole.faculty
+
+    await ws_manager.connect(room_id, websocket)
+
+    try:
+        await websocket.send_json({
+            "type": "connected",
+            "room_id": room_id,
+            "user": {
+                "id": user_id,
+                "username": user_name,
+                "role": user_role_str
+            }
+        })
+    except Exception:
+        ws_manager.disconnect(room_id, websocket)
+        return
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            content = (data.get("content") or "").strip()
+            if not content:
+                continue
+
+            async with async_session_factory() as db:
+                msg = AnonMessage(
+                    room_id=room_id,
+                    sender_id=user_id,
+                    content=content,
+                    anon_alias=user_name
+                )
+                db.add(msg)
+                await db.commit()
+                await db.refresh(msg)
+                msg_id = msg.id
+                created_at_iso = msg.created_at.isoformat() if msg.created_at else None
+
+            broadcast_payload = {
+                "type": "new_message",
+                "message": {
+                    "id": msg_id,
+                    "room_id": room_id,
+                    "sender_id": user_id,
+                    "sender_name": user_name,
+                    "sender_role": user_role_str,
+                    "content": content,
+                    "is_faculty": is_faculty,
+                    "created_at": created_at_iso
+                }
+            }
+            await ws_manager.broadcast(room_id, broadcast_payload)
+    except WebSocketDisconnect:
+        ws_manager.disconnect(room_id, websocket)
+    except Exception as e:
+        print(f"[WS ERROR] room {room_id}: {e}")
+        ws_manager.disconnect(room_id, websocket)
+
+
+@router.websocket("/ws/{room_id}/")
+async def ws_chat_genai(websocket: WebSocket, room_id: int):
+    await handle_websocket_connection(websocket, room_id)
+
+
+@chat_group_router.websocket("/ws/{room_id}/")
+async def ws_chat_api(websocket: WebSocket, room_id: int):
+    await handle_websocket_connection(websocket, room_id)
