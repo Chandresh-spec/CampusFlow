@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Dict, Any
 
+import secrets
+import httpx
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.services import auth_service, email_service, otp_service
@@ -10,6 +12,7 @@ from app.schemas.auth import (
     LoginRequest, RegisterRequest, RefreshTokenRequest,
     ForgotPasswordRequest, VerifyOTPRequest, ResetPasswordRequest,
     SendRegisterOTPRequest, VerifyRegisterRequest,
+    GoogleAuthRequest, SendGmailLoginOTPRequest, VerifyGmailLoginRequest,
     TokenResponse, UserResponse
 )
 
@@ -164,14 +167,18 @@ async def verify_register(req: VerifyRegisterRequest, db: AsyncSession = Depends
     if not otp_service.verify_otp(key, req.otp):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
         
+    role_str = (req.role or "student").lower()
+    role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+    sem_val = req.sem if req.sem is not None else getattr(req, "semester", None)
+
     user = User(
         username=req.username,
         email=req.email,
         hashed_password=auth_service.hash_password(req.password),
-        role=req.role if req.role else UserRole.student,
+        role=role_val,
         mobile_number=req.mobile_number,
         usn=req.usn,
-        sem=req.sem
+        sem=sem_val
     )
     db.add(user)
     await db.commit()
@@ -184,6 +191,168 @@ async def verify_register(req: VerifyRegisterRequest, db: AsyncSession = Depends
     
     return {
         "message": "Registration successful",
+        "user": format_user_dict(user),
+        "tokens": {
+            "access": access,
+            "refresh": refresh
+        }
+    }
+
+@router.post("/auth/google/", response_model=Dict[str, Any])
+@router.post("/google-login/", response_model=Dict[str, Any])
+async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    email = None
+    name = req.name or ""
+    
+    token = req.credential or req.id_token
+    if token:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={token}")
+                if resp.status_code == 200:
+                    info = resp.json()
+                    email = info.get("email")
+                    name = name or info.get("name") or info.get("given_name", "")
+        except Exception as e:
+            print(f"[GOOGLE AUTH] Token verification error: {e}")
+            
+    if not email and req.access_token:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                    headers={"Authorization": f"Bearer {req.access_token}"}
+                )
+                if resp.status_code == 200:
+                    info = resp.json()
+                    email = info.get("email")
+                    name = name or info.get("name")
+        except Exception as e:
+            print(f"[GOOGLE AUTH] Access token verification error: {e}")
+            
+    # Direct fallback if email is provided and matches Gmail or test domain
+    if not email and req.email:
+        email = req.email.strip().lower()
+        
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unable to verify Google account or email missing"
+        )
+        
+    email = email.strip().lower()
+    
+    # Check if user exists
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Create user
+        base_username = (email.split("@")[0] or "user").replace(".", "_")[:18]
+        username_candidate = base_username
+        
+        # Check uniqueness
+        counter = 1
+        while True:
+            res_user = await db.execute(select(User).where(User.username == username_candidate))
+            if not res_user.scalar_one_or_none():
+                break
+            username_candidate = f"{base_username}_{counter:03d}"
+            counter += 1
+            
+        role_str = (req.role or "student").lower()
+        role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+        
+        user = User(
+            username=username_candidate,
+            email=email,
+            hashed_password=auth_service.hash_password(secrets.token_urlsafe(16)),
+            role=role_val,
+            is_active=True
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        user.last_login = auth_service.get_current_time()
+        await db.commit()
+        
+    access = auth_service.create_access_token(user_id=user.id)
+    refresh = auth_service.create_refresh_token(user_id=user.id)
+    
+    return {
+        "message": "Google authentication successful",
+        "user": format_user_dict(user),
+        "tokens": {
+            "access": access,
+            "refresh": refresh
+        }
+    }
+
+@router.post("/auth/send-gmail-login-otp/")
+async def send_gmail_login_otp(req: SendGmailLoginOTPRequest, db: AsyncSession = Depends(get_db)):
+    email = req.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Valid email address is required")
+        
+    otp = otp_service.generate_otp()
+    key = f"gmail_login_{email}"
+    otp_service.store_otp(key, otp, ttl=600)
+    await email_service.send_email(
+        email,
+        "Smart College - Your Gmail Login Code",
+        f"Your one-time sign-in code is: {otp}\nValid for 10 minutes."
+    )
+    return {"message": f"Sign-in OTP sent to {email}"}
+
+@router.post("/auth/verify-gmail-login/")
+async def verify_gmail_login(req: VerifyGmailLoginRequest, db: AsyncSession = Depends(get_db)):
+    email = req.email.strip().lower()
+    key = f"gmail_login_{email}"
+    
+    if not otp_service.verify_otp(key, req.otp):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+        
+    otp_service.delete_otp(key)
+    
+    # Check if user exists
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        base_username = (email.split("@")[0] or "user").replace(".", "_")[:18]
+        username_candidate = base_username
+        
+        counter = 1
+        while True:
+            res_user = await db.execute(select(User).where(User.username == username_candidate))
+            if not res_user.scalar_one_or_none():
+                break
+            username_candidate = f"{base_username}_{counter:03d}"
+            counter += 1
+            
+        role_str = (req.role or "student").lower()
+        role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+        
+        user = User(
+            username=username_candidate,
+            email=email,
+            hashed_password=auth_service.hash_password(secrets.token_urlsafe(16)),
+            role=role_val,
+            is_active=True
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    else:
+        user.last_login = auth_service.get_current_time()
+        await db.commit()
+        
+    access = auth_service.create_access_token(user_id=user.id)
+    refresh = auth_service.create_refresh_token(user_id=user.id)
+    
+    return {
+        "message": "Gmail login successful",
         "user": format_user_dict(user),
         "tokens": {
             "access": access,

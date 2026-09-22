@@ -58,3 +58,20 @@ class RefreshTokenRequest(BaseModel):
 class RefreshTokenResponse(BaseModel):
     access: str
     refresh: Optional[str] = None
+
+class GoogleAuthRequest(BaseModel):
+    credential: Optional[str] = None
+    access_token: Optional[str] = None
+    id_token: Optional[str] = None
+    email: Optional[str] = None
+    name: Optional[str] = None
+    role: Optional[str] = "student"
+
+class SendGmailLoginOTPRequest(BaseModel):
+    email: str
+
+class VerifyGmailLoginRequest(BaseModel):
+    email: str
+    otp: str
+    role: Optional[str] = "student"
+
