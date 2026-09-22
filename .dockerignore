@@ -6,3 +6,7 @@ __pycache__/
 .env
 .vscode/
 .gitignore
+node_modules/
+.next/
+frontend/node_modules/
+frontend/.next/
