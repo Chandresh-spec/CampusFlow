@@ -361,6 +361,15 @@ export default function AIAssistant() {
               )}
             </div>
           </div>
+
+          {/* Engine Speed Indicator */}
+          <div className="pt-3 mt-auto border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+            <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Fast Inference Engine
+            </span>
+            <span className="text-slate-500 font-mono text-[10px]">Groq/Gemini Ready</span>
+          </div>
         </div>
 
         {/* Main Chat Area */}
@@ -444,14 +453,20 @@ export default function AIAssistant() {
               ))
             )}
             {loading && (
-              <div className="flex gap-4 max-w-3xl mx-auto">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${mode === 'genai' ? 'bg-purple-600' : 'bg-blue-600'}`}>
+              <div className="flex gap-4 max-w-3xl mx-auto items-start">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${mode === 'genai' ? 'bg-purple-600' : 'bg-blue-600'}`}>
                   <Bot size={16} className="text-white" />
                 </div>
-                <div className="flex gap-1.5 items-center px-4 py-3 bg-slate-800/40 rounded-2xl border border-slate-800">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                <div className="flex flex-col gap-2 px-5 py-3.5 bg-slate-800/60 rounded-2xl border border-slate-800 shadow-lg">
+                  <div className="flex items-center gap-2 text-xs text-purple-300 font-medium">
+                    <Sparkles size={13} className="text-purple-400 animate-pulse" />
+                    <span>NexusAI is formulating a response...</span>
+                  </div>
+                  <div className="flex gap-1.5 items-center">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                  </div>
                 </div>
               </div>
             )}

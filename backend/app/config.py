@@ -30,7 +30,10 @@ class Settings(BaseSettings):
     EMAIL_HOST_PASSWORD: str = ""
     DEFAULT_FROM_EMAIL: str = ""
 
-    # ── AI / HuggingFace ─────────────────────────────
+    # ── AI Providers (Groq = Blazing Fast <0.4s, Gemini = Fast <1s, OpenRouter, HuggingFace) ──
+    GROQ_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
     HUGGINGFACE_API_KEY: str = ""
 
     # ── CORS ─────────────────────────────────────────

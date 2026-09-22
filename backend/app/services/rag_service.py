@@ -35,7 +35,8 @@ def chunk_text(text: str, chunk_size: int = 800, overlap: int = 100) -> list[str
     return chunks
 
 async def get_embeddings(texts: list[str]) -> np.ndarray:
-    api_key = (settings.HUGGINGFACE_API_KEY or "").strip()
+    import os
+    api_key = (settings.HUGGINGFACE_API_KEY or os.environ.get("HF_TOKEN") or "").strip()
     if not api_key or api_key.startswith("your-"):
         return np.empty((0, 0))
 
