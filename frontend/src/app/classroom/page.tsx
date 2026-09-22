@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import Navbar from '../../components/Navbar';
@@ -9,20 +10,28 @@ import { Send, Wand2, Video, Search } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function Classroom() {
+  const { isAuthorized, isLoading } = useRoleGuard(['student', 'faculty', 'admin']);
   const { user } = useAuth();
   const [activeRoom, setActiveRoom] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isFaculty = user?.role.toLowerCase() !== 'student';
+  const isFaculty = Boolean(user?.role && user.role.toLowerCase() !== 'student');
 
   const { data: rooms } = useQuery({
     queryKey: ['anonRooms'],
     queryFn: async () => {
       const res = await api.get('/Genai/api/anon-rooms/');
       return res.data;
-    }
+    },
+    enabled: Boolean(isAuthorized)
   });
+
+  useEffect(() => {
+    if (rooms && rooms.length > 0 && !activeRoom) {
+      setActiveRoom(rooms[0].id);
+    }
+  }, [rooms, activeRoom]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -75,6 +84,8 @@ export default function Classroom() {
       window.open(`https://meet.jit.si/EduHub-${room.subject_code}-${room.id}`, '_blank');
     }
   };
+
+  if (isLoading || !isAuthorized) return null;
 
   return (
     <div className={`flex h-screen ${isFaculty ? 'bg-slate-900' : 'bg-slate-900'} relative`}>

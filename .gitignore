@@ -37,6 +37,8 @@ ENV/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 
 # Docker
 docker-compose.override.yml
+

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRoleGuard } from '../../hooks/useRoleGuard';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { Send, Bot, FileText, ToggleLeft, ToggleRight, Sparkles, Plus, Trash2, CheckCircle2 } from 'lucide-react';
@@ -11,8 +12,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 
 export default function AIAssistant() {
+  const { isAuthorized, isLoading } = useRoleGuard(['student', 'faculty', 'admin']);
   const { user } = useAuth();
-  const isFaculty = user?.role?.toLowerCase() !== 'student';
+  const isFaculty = Boolean(user?.role && user.role.toLowerCase() !== 'student');
   const [mode, setMode] = useState<'genai'|'rag'>('genai');
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user'|'ai', content: string}[]>([]);
@@ -29,6 +31,34 @@ export default function AIAssistant() {
       return res.data;
     }
   });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nexusai_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      try {
+        localStorage.setItem('nexusai_chat_history', JSON.stringify(messages));
+      } catch (e) {}
+    }
+  }, [messages]);
+
+  const handleNewChat = () => {
+    setMessages([]);
+    try {
+      localStorage.removeItem('nexusai_chat_history');
+    } catch (e) {}
+    toast.success('Started a new chat');
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -118,6 +148,8 @@ export default function AIAssistant() {
     }
   };
 
+  if (isLoading || !isAuthorized) return null;
+
   return (
     <div className="flex h-screen bg-slate-900 relative">
       {isFaculty ? <Sidebar /> : <div className="absolute top-0 w-full z-10"><Navbar /></div>}
@@ -125,7 +157,7 @@ export default function AIAssistant() {
       
       <main className={`flex-1 flex overflow-hidden ${!isFaculty ? 'pt-16' : ''}`}>
         <div className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col p-4">
-          <button onClick={() => setMessages([])} className="flex items-center gap-2 w-full py-2 px-4 rounded-lg border border-slate-700 hover:bg-slate-800 transition mb-6">
+          <button onClick={handleNewChat} className="flex items-center gap-2 w-full py-2 px-4 rounded-lg border border-slate-700 hover:bg-slate-800 transition mb-6">
             <Plus size={16} /> New Chat
           </button>
           

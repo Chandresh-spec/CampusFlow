@@ -1,20 +1,22 @@
 export const getAccessToken = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
+    return token && token !== 'undefined' && token !== 'null' ? token : null;
   }
   return null;
 };
 
 export const getRefreshToken = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('refresh_token');
+    const token = localStorage.getItem('refresh_token');
+    return token && token !== 'undefined' && token !== 'null' ? token : null;
   }
   return null;
 };
 
 export const setTokens = (access: string, refresh: string) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', access);
+    if (access) localStorage.setItem('access_token', access);
     if (refresh) localStorage.setItem('refresh_token', refresh);
   }
 };
@@ -28,8 +30,13 @@ export const clearTokens = () => {
 
 export const getUser = () => {
   if (typeof window !== 'undefined') {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    try {
+      const user = localStorage.getItem('user');
+      if (!user || user === 'undefined' || user === 'null') return null;
+      return JSON.parse(user);
+    } catch (e) {
+      return null;
+    }
   }
   return null;
 };

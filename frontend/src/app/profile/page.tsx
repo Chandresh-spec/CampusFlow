@@ -9,14 +9,14 @@ import toast, { Toaster } from 'react-hot-toast';
 import { LogOut, Save, Key } from 'lucide-react';
 
 export default function Profile() {
-  const { user, logout, updateUser } = useAuth();
-  const isFaculty = user?.role.toLowerCase() !== 'student';
   const { isAuthorized, isLoading } = useRoleGuard(['student', 'faculty', 'admin']);
+  const { user, logout, updateUser } = useAuth();
+  const isFaculty = Boolean(user?.role && user.role.toLowerCase() !== 'student');
   
   const [formData, setFormData] = useState({
     email: user?.email || '',
     mobile_number: user?.mobile_number || '',
-    semester: user?.semester || ''
+    semester: user?.sem || user?.semester || ''
   });
   const [saving, setSaving] = useState(false);
 

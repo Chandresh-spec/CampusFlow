@@ -151,52 +151,88 @@ async def faculty_dashboard(user = Depends(require_role("faculty", "admin")), db
     }
 
 @router.get("/student/dashboard/")
-async def student_dashboard(user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return {"student": user, "recent_resources": [], "resources": [], "activity_stats": {}, "resources_by_subject": []}
-        
+async def student_dashboard(
+    semester: Optional[int] = None,
+    user = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db)
+):
+    target_sem = semester or user.sem or 1
+    
+    # 1. Fetch all subjects for the target semester
+    subs_query = (
+        select(Subject)
+        .join(Sem, Subject.sem_id == Sem.id)
+        .where(Sem.sem_nmbr == target_sem)
+        .options(selectinload(Subject.faculty))
+        .order_by(Subject.sub_code)
+    )
+    subs_res = await db.execute(subs_query)
+    subjects_list = subs_res.scalars().all()
+    
+    # 2. Fetch resources for the target semester
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
-        .where(Resource.status == ResourceStatus.APPROVED)
+        .where(Sem.sem_nmbr == target_sem)
+        .where(or_(Resource.status == ResourceStatus.APPROVED, Resource.uploaded_by_id == user.id))
         .order_by(desc(Resource.created_at))
-        .limit(10)
         .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
     )
     res = await db.execute(query)
-    recent = res.scalars().all()
+    resources = res.scalars().all()
     
-    recent_formatted = []
-    for r in recent:
-        url = r.s3_url
+    resources_formatted = []
+    subject_resource_counts = {}
+    for r in resources:
+        url = r.s3_url or ""
         if not url and r.s3_key:
             try:
                 url = await s3_service.generate_presigned_download_url(r.s3_key)
             except Exception:
                 url = ""
-        recent_formatted.append({
+        sub_name = r.subject.sub_name if r.subject else "General"
+        sub_code = r.subject.sub_code if r.subject else ""
+        sub_id = r.subject_id
+        
+        subject_resource_counts[sub_id] = subject_resource_counts.get(sub_id, 0) + 1
+        
+        resources_formatted.append({
             "id": r.id,
             "title": r.title,
-            "description": r.description,
-            "subject_name": r.subject.sub_name if r.subject else "",
+            "description": r.description or "",
+            "subject_id": sub_id,
+            "subject_name": sub_name,
+            "subject_code": sub_code,
             "faculty_name": r.uploaded_by.username if r.uploaded_by else (r.subject.faculty.username if r.subject and r.subject.faculty else "Faculty"),
             "file_type": r.file_type.value if hasattr(r.file_type, "value") else str(r.file_type),
             "file_size": r.file_size,
             "size": r.file_size,
-            "views": r.view_count,
-            "view_count": r.view_count,
+            "views": r.view_count or 0,
+            "view_count": r.view_count or 0,
             "created_at": r.created_at,
-            "s3_url": url
+            "s3_url": url,
+            "status": r.status.value if hasattr(r.status, "value") else str(r.status)
+        })
+        
+    formatted_subjects = []
+    for s in subjects_list:
+        formatted_subjects.append({
+            "id": s.id,
+            "sub_code": s.sub_code,
+            "sub_name": s.sub_name,
+            "sem_id": s.sem_id,
+            "faculty_name": s.faculty.username if s.faculty else "Department Faculty",
+            "file_count": subject_resource_counts.get(s.id, 0)
         })
         
     return {
         "student": user,
-        "recent_resources": recent_formatted,
-        "resources": recent_formatted,
-        "activity_stats": {"downloads": 0},
-        "resources_by_subject": []
+        "current_semester": target_sem,
+        "subjects": formatted_subjects,
+        "recent_resources": resources_formatted[:10],
+        "resources": resources_formatted,
+        "total_resources": len(resources_formatted)
     }
 
 @router.get("/student/search/")
@@ -269,7 +305,7 @@ async def get_student_resource(id: int, user = Depends(require_role("student")),
 
 @router.post("/student/resources/{id}/download/")
 async def download_student_resource(id: int, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    res_query = select(Resource).where(Resource.id == id, Resource.status == ResourceStatus.APPROVED)
+    res_query = select(Resource).where(Resource.id == id)
     result = await db.execute(res_query)
     resource = result.scalar_one_or_none()
     if not resource:

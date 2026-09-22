@@ -8,11 +8,19 @@ from app.config import get_settings
 
 settings = get_settings()
 
+import os
+
 connect_args = {}
 engine_kwargs = {"echo": False}
 
 if "sqlite" in settings.DATABASE_URL:
     connect_args["check_same_thread"] = False
+    try:
+        db_path = settings.DATABASE_URL.split(":///")[-1]
+        if db_path and os.path.dirname(db_path):
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    except Exception:
+        pass
 else:
     engine_kwargs.update({
         "pool_size": 20,

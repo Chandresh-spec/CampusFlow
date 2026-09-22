@@ -11,9 +11,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import { timeAgo } from '../../lib/utils';
 
 export default function Notices() {
-  const { user } = useAuth();
-  const isFaculty = user?.role.toLowerCase() !== 'student';
   const { isAuthorized, isLoading } = useRoleGuard(['student', 'faculty', 'admin']);
+  const { user } = useAuth();
+  const isFaculty = Boolean(user?.role && user.role.toLowerCase() !== 'student');
   const queryClient = useQueryClient();
   
   const [filter, setFilter] = useState('All');
@@ -61,7 +61,7 @@ export default function Notices() {
   const filteredNotices = notices?.filter((n: any) => {
     if (filter === 'All') return true;
     if (filter === 'General') return !n.target_semester;
-    if (filter === 'My Semester') return n.target_semester === user?.semester;
+    if (filter === 'My Semester') return Number(n.target_semester) === Number(user?.sem || user?.semester);
     return true;
   });
 

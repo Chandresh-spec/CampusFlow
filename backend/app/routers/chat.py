@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
@@ -68,9 +68,11 @@ async def rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user
 async def list_anon_rooms(user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     rooms = []
     if user.role == UserRole.faculty:
-        sub_query = select(Subject).where(Subject.faculty_id == user.id)
-    else:
+        sub_query = select(Subject).where(or_(Subject.faculty_id == user.id, Subject.faculty_id.is_(None)))
+    elif user.sem:
         sub_query = select(Subject).join(Sem).where(Sem.sem_nmbr == user.sem)
+    else:
+        sub_query = select(Subject)
         
     subjects_res = await db.execute(sub_query)
     subjects = subjects_res.scalars().all()

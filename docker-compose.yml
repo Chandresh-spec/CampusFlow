@@ -8,10 +8,13 @@ services:
     restart: always
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
     env_file:
       - ./backend/.env
     environment:
       - PYTHONPATH=/app
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/smart_college.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
