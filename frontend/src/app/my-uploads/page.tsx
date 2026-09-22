@@ -104,45 +104,48 @@ export default function MyUploads() {
     setUploading(true);
     let uploadedSuccessfully = false;
 
-    // 1. Attempt client-side direct S3 PUT upload
+    // 1. Attempt client-side direct S3 PUT upload if configured
     try {
-      const presignRes = await api.post('/resource/api/s3/presign-upload', {
+      const presignRes = await api.post('/resource/api/s3/presign-upload/', {
         filename: file.name,
         content_type: file.type || 'application/octet-stream'
       });
-      const { upload_url, s3_key } = presignRes.data;
+      const { upload_url, s3_key } = presignRes.data || {};
 
-      const uploadResp = await fetch(upload_url, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream'
-        }
-      });
-
-      if (uploadResp.ok) {
-        await api.post('/resource/api/resources/', {
-          title: uploadData.title,
-          description: uploadData.description,
-          subject_id: Number(uploadData.subject_id),
-          file_type: uploadData.file_type || 'PDF',
-          file_size: file.size,
-          s3_key: s3_key
+      if (upload_url) {
+        const uploadResp = await fetch(upload_url, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream'
+          }
         });
-        uploadedSuccessfully = true;
+
+        if (uploadResp.ok) {
+          await api.post('/resource/api/resources/', {
+            title: uploadData.title,
+            description: uploadData.description || '',
+            subject_id: Number(uploadData.subject_id),
+            file_type: uploadData.file_type || 'PDF',
+            file_size: file.size,
+            s3_key: s3_key
+          });
+          uploadedSuccessfully = true;
+        }
       }
     } catch (s3Err) {
-      console.warn("Direct S3 PUT upload blocked, using backend upload fallback...", s3Err);
+      console.warn("Direct S3 PUT upload not available, falling back to direct server upload...", s3Err);
     }
 
-    // 2. Fallback to multipart form-data upload
+    // 2. Direct multipart form-data upload fallback
     if (!uploadedSuccessfully) {
       try {
         const formData = new FormData();
         formData.append('title', uploadData.title);
-        formData.append('description', uploadData.description);
+        formData.append('description', uploadData.description || '');
+        formData.append('subject_id', uploadData.subject_id);
         formData.append('subject', uploadData.subject_id);
-        formData.append('file_type', uploadData.file_type);
+        formData.append('file_type', uploadData.file_type || 'PDF');
         formData.append('file', file);
 
         await api.post('/resource/api/upload/', formData, {
@@ -150,6 +153,7 @@ export default function MyUploads() {
         });
         uploadedSuccessfully = true;
       } catch (backendErr: any) {
+        console.error("Backend upload error:", backendErr);
         toast.error(backendErr.response?.data?.detail || 'Upload failed. Please check backend.');
       }
     }
