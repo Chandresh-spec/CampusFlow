@@ -82,7 +82,26 @@ async def upload_direct(
     await db.commit()
     await db.refresh(resource)
 
+    # Save local copy to persistent volume for instant RAG access
+    import os
+    for base_dir in ["/app/data", "./backend/data", "./data"]:
+        try:
+            local_target = os.path.join(base_dir, s3_key)
+            os.makedirs(os.path.dirname(local_target), exist_ok=True)
+            with open(local_target, "wb") as f:
+                f.write(content)
+            break
+        except Exception:
+            pass
+
     if resource.file_type == FileType.PDF and resource.s3_key:
+        # Immediate RAG indexing so students can query notes instantly
+        try:
+            from app.services import rag_service
+            await rag_service.index_document(str(resource.subject_id), content, doc_name=resource.title)
+        except Exception as e:
+            print(f"[RAG] Immediate indexing error on upload: {e}")
+
         try:
             msg = {
                 "action": "index_pdf",

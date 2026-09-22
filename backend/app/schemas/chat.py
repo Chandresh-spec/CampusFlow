@@ -27,6 +27,7 @@ class SendMessageRequest(BaseModel):
 class GenAIRequest(BaseModel):
     question: Optional[str] = None
     prompt: Optional[str] = None
+    session_id: Optional[int] = None
 
     @model_validator(mode="after")
     def populate_question(self):
@@ -39,6 +40,7 @@ class GenAIRequest(BaseModel):
 class GenAIResponse(BaseModel):
     answer: str
     response: Optional[str] = None
+    session_id: Optional[int] = None
 
     @model_validator(mode="after")
     def populate_response(self):
@@ -50,6 +52,7 @@ class RAGChatRequest(BaseModel):
     question: Optional[str] = None
     prompt: Optional[str] = None
     subject_id: Optional[Union[str, int]] = "1"
+    session_id: Optional[int] = None
 
     @model_validator(mode="after")
     def populate_fields(self):
@@ -65,3 +68,42 @@ class RAGChatRequest(BaseModel):
 
 class RAGUploadRequest(BaseModel):
     subject_id: Optional[Union[str, int]] = "1"
+
+
+class AIChatMessageSchema(BaseModel):
+    id: int
+    role: str
+    content: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AIChatSessionSchema(BaseModel):
+    id: int
+    title: str
+    mode: str
+    subject_id: Optional[int] = None
+    subject_name: Optional[str] = None
+    message_count: int = 0
+    updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AIChatSessionDetailSchema(BaseModel):
+    id: int
+    title: str
+    mode: str
+    subject_id: Optional[int] = None
+    subject_name: Optional[str] = None
+    messages: list[AIChatMessageSchema] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CreateSessionRequest(BaseModel):
+    title: Optional[str] = "New Chat"
+    mode: Optional[str] = "genai"
+    subject_id: Optional[int] = None
+
