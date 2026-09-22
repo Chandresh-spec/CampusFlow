@@ -2,6 +2,7 @@
 Application configuration loaded from environment variables.
 """
 
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -44,7 +45,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
 
     model_config = {
-        "env_file": ".env",
+        "env_file": [str(Path(__file__).resolve().parent.parent / ".env"), ".env"],
         "env_file_encoding": "utf-8",
         "extra": "ignore",
     }

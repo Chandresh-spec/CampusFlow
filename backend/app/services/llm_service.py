@@ -55,7 +55,15 @@ async def _ask_groq(messages: list[dict], temperature: float = 0.5, max_tokens: 
             base_url="https://api.groq.com/openai/v1",
             api_key=groq_key,
         )
-        for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
+        groq_models = [
+            "qwen/qwen3.8-27b",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "allam-2-7b",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+        ]
+        for model in groq_models:
             try:
                 resp = await client.chat.completions.create(
                     model=model,
@@ -64,9 +72,12 @@ async def _ask_groq(messages: list[dict], temperature: float = 0.5, max_tokens: 
                     max_tokens=max_tokens,
                     timeout=5.0
                 )
-                content = resp.choices[0].message.content
-                if content and content.strip():
-                    return _clean_reasoning(content.strip())
+                msg = resp.choices[0].message
+                content = (msg.content or "").strip()
+                if not content and hasattr(msg, "reasoning") and msg.reasoning:
+                    content = msg.reasoning.strip()
+                if content:
+                    return _clean_reasoning(content)
             except Exception as e:
                 print(f"[LLM] Groq model {model} error: {e}")
                 if "401" in str(e) or "AuthenticationError" in type(e).__name__:
