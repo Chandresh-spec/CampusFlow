@@ -21,13 +21,14 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const role = user?.role?.toLowerCase() || 'student';
-  const dashboardHref = role === 'student' ? '/student' : '/teacher';
+  const isTeacher = role === 'faculty' || role === 'teacher' || role === 'admin';
+  const dashboardHref = isTeacher ? '/teacher' : '/student';
 
   const links = [
     { href: dashboardHref, label: 'Dashboard', icon: Home, isAnchor: false },
     { href: `${dashboardHref}#subjects-section`, label: 'My Subjects', icon: BookOpen, isAnchor: true },
     { href: `${dashboardHref}#notes-section`, label: 'Study Notes', icon: FileText, isAnchor: true },
-    { href: role === 'student' ? `${dashboardHref}#notes-section` : '/my-uploads', label: 'Materials', icon: Folder, isAnchor: role === 'student' },
+    { href: isTeacher ? '/my-uploads' : `${dashboardHref}#notes-section`, label: 'Materials', icon: Folder, isAnchor: !isTeacher },
     { href: '/classroom', label: 'Class Chat', icon: MessageSquare, isAnchor: false },
     { href: '/ai-assistant', label: 'NexusAI', icon: Sparkles, isAi: true, isAnchor: false, badge: 'AI' },
     { href: '/notices', label: 'Notices', icon: Bell, isAnchor: false },

@@ -40,11 +40,22 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Invalid credentials"
         )
         
+    # Honor explicit role chosen at login or auto-detect teacher/faculty usernames
+    if req.role:
+        r = req.role.strip().lower()
+        if r in ["teacher", "faculty", "professor"]:
+            user.role = UserRole.faculty
+        elif r == "student":
+            user.role = UserRole.student
+    elif user.username.lower().endswith("teacher") or user.username.lower().startswith("teacher") or "faculty" in user.username.lower():
+        user.role = UserRole.faculty
+        
     access = auth_service.create_access_token(user_id=user.id)
     refresh = auth_service.create_refresh_token(user_id=user.id)
     
     user.last_login = auth_service.get_current_time()
     await db.commit()
+    await db.refresh(user)
     
     return {
         "message": "Login successful",
@@ -61,8 +72,13 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
         
-    role_str = (req.role or "student").lower()
-    role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+    role_str = (req.role or "student").strip().lower()
+    if role_str in ["teacher", "faculty", "professor"]:
+        role_val = UserRole.faculty
+    elif role_str == "admin":
+        role_val = UserRole.admin
+    else:
+        role_val = UserRole.student
     sem_val = req.sem if req.sem is not None else getattr(req, "semester", None)
 
     user = User(
@@ -167,8 +183,13 @@ async def verify_register(req: VerifyRegisterRequest, db: AsyncSession = Depends
     if not otp_service.verify_otp(key, req.otp):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
         
-    role_str = (req.role or "student").lower()
-    role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+    role_str = (req.role or "student").strip().lower()
+    if role_str in ["teacher", "faculty", "professor"]:
+        role_val = UserRole.faculty
+    elif role_str == "admin":
+        role_val = UserRole.admin
+    else:
+        role_val = UserRole.student
     sem_val = req.sem if req.sem is not None else getattr(req, "semester", None)
 
     user = User(
@@ -260,8 +281,13 @@ async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)
             username_candidate = f"{base_username}_{counter:03d}"
             counter += 1
             
-        role_str = (req.role or "student").lower()
-        role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+        role_str = (req.role or "student").strip().lower()
+        if role_str in ["teacher", "faculty", "professor"]:
+            role_val = UserRole.faculty
+        elif role_str == "admin":
+            role_val = UserRole.admin
+        else:
+            role_val = UserRole.student
         
         user = User(
             username=username_candidate,
@@ -274,8 +300,11 @@ async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)
         await db.commit()
         await db.refresh(user)
     else:
+        if req.role and req.role.strip().lower() in ["teacher", "faculty", "professor"]:
+            user.role = UserRole.faculty
         user.last_login = auth_service.get_current_time()
         await db.commit()
+        await db.refresh(user)
         
     access = auth_service.create_access_token(user_id=user.id)
     refresh = auth_service.create_refresh_token(user_id=user.id)
@@ -331,8 +360,13 @@ async def verify_gmail_login(req: VerifyGmailLoginRequest, db: AsyncSession = De
             username_candidate = f"{base_username}_{counter:03d}"
             counter += 1
             
-        role_str = (req.role or "student").lower()
-        role_val = UserRole(role_str) if role_str in UserRole._value2member_map_ else UserRole.student
+        role_str = (req.role or "student").strip().lower()
+        if role_str in ["teacher", "faculty", "professor"]:
+            role_val = UserRole.faculty
+        elif role_str == "admin":
+            role_val = UserRole.admin
+        else:
+            role_val = UserRole.student
         
         user = User(
             username=username_candidate,
@@ -345,8 +379,11 @@ async def verify_gmail_login(req: VerifyGmailLoginRequest, db: AsyncSession = De
         await db.commit()
         await db.refresh(user)
     else:
+        if req.role and req.role.strip().lower() in ["teacher", "faculty", "professor"]:
+            user.role = UserRole.faculty
         user.last_login = auth_service.get_current_time()
         await db.commit()
+        await db.refresh(user)
         
     access = auth_service.create_access_token(user_id=user.id)
     refresh = auth_service.create_refresh_token(user_id=user.id)

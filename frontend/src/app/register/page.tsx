@@ -76,10 +76,12 @@ export default function Register() {
                 });
                 login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
                 toast.success(`Welcome to Smart College, ${res.data.user.username}!`);
-                if (res.data.user.role?.toLowerCase() === 'student') {
-                  router.push('/student');
-                } else {
+                const userRole = (res.data.user.role || role).toLowerCase();
+                const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+                if (isTeacher) {
                   router.push('/teacher');
+                } else {
+                  router.push('/student');
                 }
               } catch (err: any) {
                 toast.error(err.response?.data?.detail || 'Google sign-up failed');
@@ -170,10 +172,12 @@ export default function Register() {
         if (res.data?.tokens?.access) {
           login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
           setTimeout(() => {
-            if (res.data.user.role?.toLowerCase() === 'student') {
-              router.push('/student');
-            } else {
+            const userRole = (res.data.user.role || role).toLowerCase();
+            const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+            if (isTeacher) {
               router.push('/teacher');
+            } else {
+              router.push('/student');
             }
           }, 1000);
         } else {
@@ -213,7 +217,7 @@ export default function Register() {
 
         {/* Role Selection */}
         <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 border border-slate-200/70">
-          {['Student', 'Faculty'].map((r) => (
+          {['Student', 'Teacher'].map((r) => (
             <button
               key={r}
               type="button"

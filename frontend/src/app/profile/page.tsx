@@ -29,7 +29,8 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     email: '',
     mobile_number: '',
-    semester: '1'
+    semester: '1',
+    role: 'student'
   });
   const [saving, setSaving] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -40,7 +41,8 @@ export default function Profile() {
       setFormData({
         email: user.email || '',
         mobile_number: user.mobile_number || '',
-        semester: String(user.sem || user.semester || '1')
+        semester: String(user.sem || user.semester || '1'),
+        role: user.role || 'student'
       });
     }
   }, [user]);
@@ -60,8 +62,9 @@ export default function Profile() {
       const payload: any = {
         email: formData.email,
         mobile_number: formData.mobile_number,
+        role: formData.role,
       };
-      if (!isFaculty && formData.semester) {
+      if (formData.role.toLowerCase() === 'student' && formData.semester) {
         payload.sem = Number(formData.semester);
         payload.semester = Number(formData.semester);
       }
@@ -256,7 +259,37 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {!isFaculty && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
+                    Account Role
+                  </label>
+                  <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, role: 'student' })}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                        formData.role.toLowerCase() === 'student'
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Student
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, role: 'faculty' })}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition ${
+                        formData.role.toLowerCase() !== 'student'
+                          ? 'bg-[#059669] text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Teacher / Faculty
+                    </button>
+                  </div>
+                </div>
+
+                {formData.role.toLowerCase() === 'student' && (
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">
                       Current Semester

@@ -18,6 +18,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginRole, setLoginRole] = useState<'student' | 'faculty'>('student');
   const { login } = useAuth();
   const router = useRouter();
 
@@ -60,13 +61,15 @@ export default function Login() {
   const handleGoogleTokenResponse = async (credential: string) => {
     setLoading(true);
     try {
-      const res = await api.post('/api/auth/google/', { credential, role: 'student' });
+      const res = await api.post('/api/auth/google/', { credential, role: loginRole });
       login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
       toast.success(`Welcome back, ${res.data.user.username}!`);
-      if (res.data.user.role?.toLowerCase() === 'student') {
-        router.push('/student');
-      } else {
+      const userRole = (res.data.user.role || loginRole).toLowerCase();
+      const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+      if (isTeacher) {
         router.push('/teacher');
+      } else {
+        router.push('/student');
       }
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Google sign-in failed');
@@ -120,13 +123,19 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post('/api/login/', { username, password });
+      const res = await api.post('/api/login/', { 
+        username, 
+        password,
+        role: loginRole 
+      });
       login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
       toast.success('Login successful!');
-      if (res.data.user.role.toLowerCase() === 'student') {
-        router.push('/student');
-      } else {
+      const userRole = (res.data.user.role || loginRole).toLowerCase();
+      const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+      if (isTeacher) {
         router.push('/teacher');
+      } else {
+        router.push('/student');
       }
     } catch (err: any) {
       toast.error(err.response?.data?.detail || err.response?.data?.message || 'Login failed');
@@ -165,15 +174,17 @@ export default function Login() {
       const res = await api.post('/api/auth/verify-gmail-login/', {
         email: gmailEmail,
         otp: gmailOtp,
-        role: gmailRole,
+        role: gmailRole || loginRole,
       });
       login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
       toast.success(`Welcome, ${res.data.user.username}!`);
       setShowGmailModal(false);
-      if (res.data.user.role?.toLowerCase() === 'student') {
-        router.push('/student');
-      } else {
+      const userRole = (res.data.user.role || gmailRole || loginRole).toLowerCase();
+      const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+      if (isTeacher) {
         router.push('/teacher');
+      } else {
+        router.push('/student');
       }
     } catch (err: any) {
       toast.error(err.response?.data?.detail || 'Invalid OTP code');
@@ -262,6 +273,32 @@ export default function Login() {
             Welcome Back
           </h2>
           <p className="text-slate-500 text-xs mt-1">Sign in to your Smart College Portal</p>
+        </div>
+
+        {/* Role Switcher */}
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-5 border border-slate-200/70">
+          <button
+            type="button"
+            onClick={() => { setLoginRole('student'); setGmailRole('student'); }}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition duration-150 ${
+              loginRole === 'student'
+                ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Student
+          </button>
+          <button
+            type="button"
+            onClick={() => { setLoginRole('faculty'); setGmailRole('faculty'); }}
+            className={`flex-1 py-2 text-xs font-bold rounded-xl transition duration-150 ${
+              loginRole === 'faculty'
+                ? 'bg-[#059669] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Teacher / Faculty
+          </button>
         </div>
 
         {/* Official Google Identity Services Rendered Button */}

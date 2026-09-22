@@ -123,6 +123,8 @@ async def get_subject_status(subject_id: str, db: AsyncSession = Depends(get_db)
 
 @router.post("/genai")
 @router.post("/genai/")
+@router.post("/ask")
+@router.post("/ask/")
 async def genai_query(req: GenAIRequest, user = Depends(get_optional_current_user), db: AsyncSession = Depends(get_db)):
     query = req.question or req.prompt or ""
     answer = await llm_service.ask_llm('', query)
@@ -168,6 +170,8 @@ async def upload_pdf(subject_id: Optional[str] = Form("1"), file: UploadFile = F
 
 @router.post("/chat")
 @router.post("/chat/")
+@router.post("/rag/ask")
+@router.post("/rag/ask/")
 async def rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user), db: AsyncSession = Depends(get_db)):
     query = (req.question or req.prompt or "").strip()
     if not query:
@@ -233,6 +237,20 @@ async def rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user
         await db.commit()
 
     return {"answer": answer, "response": answer, "session_id": session_id}
+
+@chat_group_router.post("/genai")
+@chat_group_router.post("/genai/")
+@chat_group_router.post("/ask")
+@chat_group_router.post("/ask/")
+async def chat_group_genai_query(req: GenAIRequest, user = Depends(get_optional_current_user), db: AsyncSession = Depends(get_db)):
+    return await genai_query(req, user, db)
+
+@chat_group_router.post("/rag/ask")
+@chat_group_router.post("/rag/ask/")
+@chat_group_router.post("/chat")
+@chat_group_router.post("/chat/")
+async def chat_group_rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user), db: AsyncSession = Depends(get_db)):
+    return await rag_chat(req, user, db)
 
 # ── Real-Time Semester-Scoped Group Chat & WebSockets ─────────
 

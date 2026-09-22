@@ -22,10 +22,12 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
-      if (user.role?.toLowerCase() === 'student') {
-        router.push('/student');
-      } else {
+      const userRole = user.role?.toLowerCase() || 'student';
+      const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+      if (isTeacher) {
         router.push('/teacher');
+      } else {
+        router.push('/student');
       }
     }
   }, [isAuthenticated, user, loading, router]);

@@ -5,6 +5,7 @@ from .user import UserResponse
 class LoginRequest(BaseModel):
     username: str
     password: str
+    role: Optional[str] = None
 
 class RegisterRequest(BaseModel):
     username: str

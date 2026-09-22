@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.dependencies import get_current_user
 from app.schemas.user import ProfileUpdateRequest
 
@@ -26,6 +26,14 @@ async def update_profile(
         user.sem = req.sem
     elif req.semester is not None:
         user.sem = req.semester
+    if req.role is not None:
+        r = req.role.strip().lower()
+        if r in ["faculty", "teacher"]:
+            user.role = UserRole.faculty
+        elif r == "admin":
+            user.role = UserRole.admin
+        else:
+            user.role = UserRole.student
         
     await db.commit()
     await db.refresh(user)

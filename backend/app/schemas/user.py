@@ -18,5 +18,6 @@ class UserUpdateRequest(BaseModel):
     mobile_number: Optional[str] = None
     sem: Optional[int] = None
     semester: Optional[int] = None
+    role: Optional[str] = None
 
 ProfileUpdateRequest = UserUpdateRequest

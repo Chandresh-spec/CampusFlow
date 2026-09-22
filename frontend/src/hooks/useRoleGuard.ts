@@ -18,21 +18,32 @@ export const useRoleGuard = (allowedRoles: string[]) => {
       return;
     }
 
-    const currentRole = user?.role?.toLowerCase() || '';
-    if (!normalizedRoles.includes(currentRole)) {
-      if (currentRole === 'student') {
-        router.push('/student');
-      } else {
+    const currentRole = user?.role?.toLowerCase() || 'student';
+    const isTeacher = currentRole === 'faculty' || currentRole === 'teacher' || currentRole === 'admin';
+    const isAllowed = normalizedRoles.some(r => {
+      if (r === 'faculty' || r === 'teacher') return isTeacher;
+      return r === currentRole;
+    });
+
+    if (!isAllowed) {
+      if (isTeacher) {
         router.push('/teacher');
+      } else {
+        router.push('/student');
       }
     }
   }, [user, isAuthenticated, loading, normalizedRoles, router]);
 
+  const currentRole = user?.role?.toLowerCase() || 'student';
+  const isTeacher = currentRole === 'faculty' || currentRole === 'teacher' || currentRole === 'admin';
   const isAuthorized = Boolean(
     !loading && 
     isAuthenticated && 
     user && 
-    normalizedRoles.includes(user?.role?.toLowerCase() || '')
+    normalizedRoles.some(r => {
+      if (r === 'faculty' || r === 'teacher') return isTeacher;
+      return r === currentRole;
+    })
   );
 
   return { 

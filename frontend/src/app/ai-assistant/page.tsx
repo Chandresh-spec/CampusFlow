@@ -140,17 +140,28 @@ export default function AIAssistant() {
     setLoading(true);
 
     try {
-      const endpoint = mode === 'genai' ? '/Genai/api/ask/' : '/Genai/api/rag/ask/';
+      const primaryEndpoint = mode === 'genai' ? '/Genai/api/genai/' : '/Genai/api/chat/';
+      const fallbackEndpoint = mode === 'genai' ? '/Genai/api/ask/' : '/Genai/api/rag/ask/';
       const payload: any = {
         question: userMsg,
+        prompt: userMsg,
         subject_id: subjectId || '1',
       };
       if (activeSessionId) {
         payload.session_id = activeSessionId;
       }
       
-      const res = await api.post(endpoint, payload);
-      const answer = res.data.answer || "I couldn't process that request.";
+      let res: any;
+      try {
+        res = await api.post(primaryEndpoint, payload);
+      } catch (postErr: any) {
+        if (postErr.response?.status === 404) {
+          res = await api.post(fallbackEndpoint, payload);
+        } else {
+          throw postErr;
+        }
+      }
+      const answer = res.data.answer || res.data.response || "I couldn't process that request.";
       
       if (res.data.session_id && !activeSessionId) {
         setActiveSessionId(res.data.session_id);

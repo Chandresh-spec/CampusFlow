@@ -13,8 +13,9 @@ export default function Navbar() {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   const initial = user?.username ? user.username.charAt(0).toUpperCase() : 'M';
-  const role = user?.role || 'student';
-  const dashboardHref = role === 'student' ? '/student' : '/teacher';
+  const role = user?.role?.toLowerCase() || 'student';
+  const isTeacher = role === 'faculty' || role === 'teacher' || role === 'admin';
+  const dashboardHref = isTeacher ? '/teacher' : '/student';
 
   const navLinks = [
     { href: dashboardHref, label: 'Dashboard', icon: Layers, isAi: false },
