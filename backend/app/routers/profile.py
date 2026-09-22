@@ -24,6 +24,8 @@ async def update_profile(
         user.mobile_number = req.mobile_number
     if req.sem is not None:
         user.sem = req.sem
+    elif req.semester is not None:
+        user.sem = req.semester
         
     await db.commit()
     await db.refresh(user)

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import Link from 'next/link';
-import { Mail, CheckCircle2, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react';
+import { Mail, CheckCircle2, ShieldCheck, ArrowRight, GraduationCap } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 declare global {
@@ -41,7 +41,9 @@ export default function Register() {
   }, [countdown]);
 
   // ── Google Identity Services (GIS) Setup ────────────────────
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const googleClientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    '571536711772-lvumlfrpk4ql0v9l7e1hnja1lm0hgmpo.apps.googleusercontent.com';
 
   useEffect(() => {
     if (!document.getElementById('google-gsi-client')) {
@@ -191,34 +193,34 @@ export default function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 py-12 relative overflow-hidden bg-slate-950">
+    <div className="flex items-center justify-center min-h-screen p-4 py-12 relative overflow-hidden bg-[#f8fafc] font-sans antialiased">
       <Toaster position="top-right" />
 
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+      {/* Decorative soft pastel ambient spots */}
+      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-300/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-teal-300/15 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="glass w-full max-w-lg p-8 rounded-3xl relative z-10 border border-slate-800/80 shadow-2xl backdrop-blur-xl">
+      <div className="bg-white w-full max-w-lg p-8 rounded-3xl relative z-10 border border-slate-200/90 shadow-xl">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-pink-500 shadow-lg shadow-blue-500/25 mb-3">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 text-[#059669] border border-emerald-100 shadow-xs mb-3">
+            <GraduationCap className="w-6 h-6 text-[#059669]" />
           </div>
-          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+          <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             Create Account
           </h2>
-          <p className="text-slate-400 text-sm mt-1">Join the Smart College Portal</p>
+          <p className="text-slate-500 text-xs mt-1">Join the Smart College Portal</p>
         </div>
 
         {/* Role Selection */}
-        <div className="flex bg-slate-900/80 p-1.5 rounded-2xl mb-6 border border-slate-800">
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 border border-slate-200/70">
           {['Student', 'Faculty'].map((r) => (
             <button
               key={r}
               type="button"
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition duration-200 ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition duration-150 ${
                 role === r
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-600/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-slate-900 shadow-sm border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
               onClick={() => setRole(r)}
             >
@@ -232,9 +234,9 @@ export default function Register() {
           type="button"
           onClick={handleGoogleSignUp}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-semibold py-3 px-4 rounded-xl transition shadow-md hover:shadow-lg disabled:opacity-50 mb-6"
+          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 text-slate-800 font-semibold py-2.5 px-4 rounded-xl transition border border-slate-200 shadow-xs hover:border-slate-300 disabled:opacity-50 mb-5 text-sm"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -255,9 +257,9 @@ export default function Register() {
           <span>Sign up with Google as {role}</span>
         </button>
 
-        <div className="relative flex items-center justify-center mb-6">
-          <div className="border-t border-slate-800 w-full" />
-          <span className="bg-slate-900/90 px-3 text-xs uppercase tracking-wider text-slate-400 font-medium absolute">
+        <div className="relative flex items-center justify-center mb-5">
+          <div className="border-t border-slate-200 w-full" />
+          <span className="bg-white px-3 text-[11px] uppercase tracking-wider text-slate-400 font-bold absolute">
             or with email & OTP verify
           </span>
         </div>
@@ -265,25 +267,25 @@ export default function Register() {
         {/* Registration Form */}
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-300">Username</label>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-600">Username</label>
             <input
               required
               type="text"
               placeholder="e.g. alex_student"
-              className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             />
           </div>
 
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-sm font-medium text-slate-300">Gmail / Email</label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Gmail / Email</label>
               <button
                 type="button"
                 onClick={handleSendRegisterOtp}
                 disabled={otpSending || countdown > 0}
-                className="text-xs font-semibold text-blue-400 hover:text-blue-300 disabled:opacity-50 transition flex items-center gap-1"
+                className="text-xs font-bold text-[#059669] hover:underline disabled:opacity-50 transition flex items-center gap-1"
               >
                 <ShieldCheck size={14} />
                 {otpSending
@@ -292,14 +294,14 @@ export default function Register() {
                   ? `Resend in ${countdown}s`
                   : otpSent
                   ? 'Resend OTP'
-                  : 'Verify Gmail with OTP'}
+                  : 'Verify Gmail OTP'}
               </button>
             </div>
             <input
               required
               type="email"
               placeholder="student@gmail.com"
-              className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
@@ -307,9 +309,9 @@ export default function Register() {
 
           {/* OTP Input Field */}
           {otpSent && (
-            <div className="p-3 bg-blue-950/30 border border-blue-800/50 rounded-2xl animate-in fade-in duration-200">
-              <div className="flex items-center gap-2 text-xs text-blue-300 mb-1.5 font-medium">
-                <CheckCircle2 size={15} className="text-emerald-400" />
+            <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl animate-in fade-in duration-200">
+              <div className="flex items-center gap-2 text-xs text-[#047857] mb-2 font-semibold">
+                <CheckCircle2 size={15} className="text-[#059669]" />
                 6-digit code sent to your Gmail inbox!
               </div>
               <input
@@ -318,30 +320,30 @@ export default function Register() {
                 placeholder="Enter 6-digit OTP"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.trim())}
-                className="w-full bg-slate-900 border border-blue-500/50 rounded-xl px-4 py-2.5 text-center text-xl tracking-widest font-mono text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full bg-white border border-emerald-300 rounded-xl px-4 py-2.5 text-center text-xl tracking-widest font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-bold"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-300">Password</label>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-600">Password</label>
             <input
               required
               type="password"
               placeholder="Create a strong password"
-              className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-slate-300">Mobile Number</label>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-600">Mobile Number</label>
             <input
               required
               type="tel"
               placeholder="e.g. +91 9876543210"
-              className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium"
               value={formData.mobile_number}
               onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
             />
@@ -350,25 +352,25 @@ export default function Register() {
           {role === 'Student' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1 text-slate-300">USN</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-600">USN</label>
                 <input
                   required
                   type="text"
                   placeholder="1DS21CS001"
-                  className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white uppercase placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 uppercase placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium"
                   value={formData.usn}
                   onChange={(e) => setFormData({ ...formData, usn: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 text-slate-300">Semester</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5 text-slate-600">Semester</label>
                 <select
-                  className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition font-medium"
                   value={formData.semester}
                   onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                    <option key={s} value={s} className="bg-slate-900 text-white">
+                    <option key={s} value={s} className="bg-white text-slate-800">
                       Semester {s}
                     </option>
                   ))}
@@ -380,7 +382,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 hover:opacity-95 active:scale-[0.99] text-white rounded-xl py-3 font-semibold transition mt-6 shadow-lg shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-[#059669] hover:bg-[#047857] active:scale-[0.99] text-white rounded-xl py-3 font-semibold text-sm transition shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 mt-6"
           >
             {loading ? (
               'Creating Account...'
@@ -398,9 +400,9 @@ export default function Register() {
           </button>
         </form>
 
-        <p className="text-center mt-6 text-sm text-slate-400">
+        <p className="text-center mt-6 text-xs text-slate-500">
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-400 hover:text-blue-300 font-semibold underline-offset-4 hover:underline transition">
+          <Link href="/login" className="text-[#059669] hover:underline font-bold transition">
             Log In
           </Link>
         </p>

@@ -36,6 +36,7 @@ import {
   Plus
 } from 'lucide-react';
 import { formatFileSize, timeAgo } from '../../lib/utils';
+import AiSymbol from '../../components/AiSymbol';
 
 const THEMES = [
   {
@@ -112,6 +113,26 @@ export default function TeacherDashboard() {
   const [search, setSearch] = useState('');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'subjects' | 'notes' | 'materials'>('dashboard');
+
+  const handleNavClick = (tab: 'dashboard' | 'subjects' | 'notes' | 'materials') => {
+    setActiveTab(tab);
+    if (tab === 'dashboard') {
+      setSelectedSubjectId(null);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else if (tab === 'subjects') {
+      if (typeof window !== 'undefined') {
+        document.getElementById('subjects-section')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else if (tab === 'notes') {
+      if (typeof window !== 'undefined') {
+        document.getElementById('notes-section')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else if (tab === 'materials') {
+      router.push('/my-uploads');
+    }
+  };
 
   useEffect(() => {
     if (user?.sem || user?.semester) {
@@ -214,56 +235,85 @@ export default function TeacherDashboard() {
           </Link>
 
           {/* Navigation Links */}
-          <nav className="space-y-1.5">
+          <nav className="space-y-1">
             <button
-              onClick={() => { setActiveTab('dashboard'); setSelectedSubjectId(null); }}
-              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-semibold text-sm transition text-left ${
+              onClick={() => handleNavClick('dashboard')}
+              className={`w-full flex items-center gap-3.5 px-4 py-2.5 rounded-2xl font-semibold text-sm transition text-left ${
                 activeTab === 'dashboard'
                   ? 'bg-[#e8f5e9] text-[#047857]'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
               }`}
             >
-              <Home size={20} className={activeTab === 'dashboard' ? 'text-[#059669]' : 'text-slate-400'} />
+              <Home size={19} className={activeTab === 'dashboard' ? 'text-[#059669]' : 'text-slate-400'} />
               <span>Dashboard</span>
             </button>
 
             <button
-              onClick={() => { setActiveTab('subjects'); }}
-              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm transition text-left ${
+              onClick={() => handleNavClick('subjects')}
+              className={`w-full flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-sm transition text-left ${
                 activeTab === 'subjects'
                   ? 'bg-[#e8f5e9] text-[#047857] font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
               }`}
             >
-              <BookOpen size={20} className={activeTab === 'subjects' ? 'text-[#059669]' : 'text-slate-400'} />
+              <BookOpen size={19} className={activeTab === 'subjects' ? 'text-[#059669]' : 'text-slate-400'} />
               <span>My Subjects</span>
             </button>
 
             <button
-              onClick={() => { setActiveTab('notes'); }}
-              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm transition text-left ${
+              onClick={() => handleNavClick('notes')}
+              className={`w-full flex items-center gap-3.5 px-4 py-2.5 rounded-2xl text-sm transition text-left ${
                 activeTab === 'notes'
                   ? 'bg-[#e8f5e9] text-[#047857] font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium'
               }`}
             >
-              <FileText size={20} className={activeTab === 'notes' ? 'text-[#059669]' : 'text-slate-400'} />
+              <FileText size={19} className={activeTab === 'notes' ? 'text-[#059669]' : 'text-slate-400'} />
               <span>Study Notes</span>
             </button>
 
             <Link
               href="/my-uploads"
-              className="flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+              className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
             >
-              <Folder size={20} className="text-slate-400" />
-              <span>Materials</span>
+              <Folder size={19} className="text-slate-400" />
+              <span>Materials / Uploads</span>
+            </Link>
+
+            <Link
+              href="/classroom"
+              className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+            >
+              <MessageSquare size={19} className="text-slate-400" />
+              <span>Class Chat</span>
+            </Link>
+
+            <Link
+              href="/ai-assistant"
+              className="flex items-center justify-between px-4 py-2.5 rounded-2xl font-semibold text-sm text-slate-700 hover:bg-emerald-50/80 hover:text-emerald-800 transition group"
+            >
+              <div className="flex items-center gap-3.5">
+                <AiSymbol size={20} className="text-blue-600 group-hover:scale-110 transition-transform" />
+                <span>NexusAI</span>
+              </div>
+              <span className="bg-emerald-100 text-[#047857] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-300/60 shadow-xs">
+                AI
+              </span>
+            </Link>
+
+            <Link
+              href="/notices"
+              className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+            >
+              <Bell size={19} className="text-slate-400" />
+              <span>Notices</span>
             </Link>
 
             <Link
               href="/profile"
-              className="flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+              className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl font-medium text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
             >
-              <User size={20} className="text-slate-400" />
+              <User size={19} className="text-slate-400" />
               <span>Profile</span>
             </Link>
           </nav>
@@ -296,7 +346,16 @@ export default function TeacherDashboard() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/ai-assistant"
+              title="Open NexusAI Assistant"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ecfdf5] hover:bg-[#dcfce7] text-[#047857] border border-emerald-200 text-xs font-bold transition shadow-xs"
+            >
+              <AiSymbol size={16} className="text-blue-600 animate-pulse" />
+              <span>Ask AI</span>
+            </Link>
+
             <Link
               href="/notices"
               title="Notices"
@@ -463,7 +522,7 @@ export default function TeacherDashboard() {
           </div>
 
           {/* ── Semester Subjects Grid ─────────────────────────────── */}
-          <div className="space-y-4">
+          <div id="subjects-section" className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2.5">
                 <BookOpen size={20} className="text-[#059669]" />
@@ -539,7 +598,7 @@ export default function TeacherDashboard() {
           </div>
 
           {/* ── All Study Notes Section ────────────────────────────── */}
-          <div className="space-y-4 pt-2">
+          <div id="notes-section" className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -627,9 +686,16 @@ export default function TeacherDashboard() {
       <Link
         href="/ai-assistant"
         title="Open NexusAI Assistant"
-        className="fixed bottom-6 right-6 z-50 w-13 h-13 md:w-14 md:h-14 rounded-full bg-[#065f46] hover:bg-[#047857] text-white shadow-2xl flex items-center justify-center transition transform hover:scale-105 active:scale-95 shadow-emerald-950/30"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-[#065f46] hover:bg-[#047857] text-white pl-4 pr-5 py-3 rounded-full shadow-2xl transition transform hover:scale-105 active:scale-95 shadow-emerald-950/40 group border border-emerald-500/30"
       >
-        <MessageSquare size={22} className="text-white" />
+        <div className="relative flex items-center justify-center">
+          <AiSymbol size={24} className="text-white group-hover:scale-110 transition-transform" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-300 rounded-full animate-ping" />
+        </div>
+        <div className="flex flex-col text-left">
+          <span className="text-[10px] uppercase font-black tracking-wider text-emerald-300 leading-none">AI Agent</span>
+          <span className="text-xs font-bold leading-tight">NexusAI</span>
+        </div>
       </Link>
     </div>
   );
