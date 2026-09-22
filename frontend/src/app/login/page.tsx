@@ -38,7 +38,7 @@ export default function Login() {
   const [gmailLoading, setGmailLoading] = useState(false);
 
   // ── Google Identity Services (GIS) Setup ────────────────────
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '571536711772-lvumlfrpk4ql0v9l7e1hnja1lm0hgmpo.apps.googleusercontent.com';
 
   useEffect(() => {
     // Dynamically inject Google Identity Services script if not already present
@@ -86,6 +86,16 @@ export default function Login() {
             }
           },
         });
+        const container = document.getElementById('google-btn-container');
+        if (container) {
+          window.google.accounts.id.renderButton(container, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with',
+            shape: 'rectangular',
+          });
+        }
       } catch (err) {
         console.warn('Google GSI init failed:', err);
       }
@@ -254,7 +264,10 @@ export default function Login() {
           <p className="text-slate-400 text-sm mt-1">Access your Smart College portal</p>
         </div>
 
-        {/* Google OAuth Button */}
+        {/* Official Google Identity Services Rendered Button */}
+        <div id="google-btn-container" className="w-full flex justify-center mb-3 min-h-[44px]"></div>
+
+        {/* Fallback Google OAuth Button */}
         <button
           type="button"
           onClick={handleGoogleButtonClick}

@@ -172,7 +172,7 @@ async def faculty_dashboard(user = Depends(require_role("faculty", "admin")), db
 @router.get("/student/dashboard/")
 async def student_dashboard(
     semester: Optional[int] = None,
-    user = Depends(require_role("student")),
+    user = Depends(require_role(["student", "faculty", "admin"])),
     db: AsyncSession = Depends(get_db)
 ):
     target_sem = semester or user.sem or 1
@@ -255,14 +255,13 @@ async def student_dashboard(
     }
 
 @router.get("/student/search/")
-async def student_search(q: str, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return []
+async def student_search(q: str, user = Depends(require_role(["student", "faculty", "admin"])), db: AsyncSession = Depends(get_db)):
+    target_sem = user.sem or 1
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
+        .where(Sem.sem_nmbr == target_sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .where(Resource.title.ilike(f"%{q}%"))
         .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
@@ -271,14 +270,13 @@ async def student_search(q: str, user = Depends(require_role("student")), db: As
     return res.scalars().all()
 
 @router.get("/student/filter/")
-async def student_filter(subject: Optional[str] = None, professor: Optional[str] = None, type: Optional[str] = None, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return []
+async def student_filter(subject: Optional[str] = None, professor: Optional[str] = None, type: Optional[str] = None, user = Depends(require_role(["student", "faculty", "admin"])), db: AsyncSession = Depends(get_db)):
+    target_sem = user.sem or 1
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
+        .where(Sem.sem_nmbr == target_sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
     )
@@ -290,14 +288,13 @@ async def student_filter(subject: Optional[str] = None, professor: Optional[str]
     return res.scalars().all()
 
 @router.get("/student/resources/")
-async def list_student_resources(user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return []
+async def list_student_resources(user = Depends(require_role(["student", "faculty", "admin"])), db: AsyncSession = Depends(get_db)):
+    target_sem = user.sem or 1
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
+        .where(Sem.sem_nmbr == target_sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
     )
@@ -305,7 +302,7 @@ async def list_student_resources(user = Depends(require_role("student")), db: As
     return res.scalars().all()
 
 @router.get("/student/resources/{id}/")
-async def get_student_resource(id: int, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
+async def get_student_resource(id: int, user = Depends(require_role(["student", "faculty", "admin"])), db: AsyncSession = Depends(get_db)):
     query = (
         select(Resource)
         .where(Resource.id == id, Resource.status == ResourceStatus.APPROVED)
@@ -323,7 +320,7 @@ async def get_student_resource(id: int, user = Depends(require_role("student")),
     return resource
 
 @router.post("/student/resources/{id}/download/")
-async def download_student_resource(id: int, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
+async def download_student_resource(id: int, user = Depends(require_role(["student", "faculty", "admin"])), db: AsyncSession = Depends(get_db)):
     res_query = select(Resource).where(Resource.id == id)
     result = await db.execute(res_query)
     resource = result.scalar_one_or_none()
