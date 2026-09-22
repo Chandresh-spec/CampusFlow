@@ -87,6 +87,16 @@ async def index_document(subject_id: str, pdf_bytes: bytes):
 
     print(f"[RAG] Successfully indexed {len(chunks)} chunks for subject '{subject_id}'")
 
+def has_document(subject_id: str) -> bool:
+    """Check if any document chunks are loaded for the given subject or globally."""
+    target_data = VECTOR_STORE.get(str(subject_id))
+    if target_data and target_data.get("chunks"):
+        return True
+    for s_id, s_data in VECTOR_STORE.items():
+        if s_data and s_data.get("chunks"):
+            return True
+    return False
+
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     norm_a = np.linalg.norm(a)
     norm_b = np.linalg.norm(b)
@@ -95,9 +105,17 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.dot(a, b) / (norm_a * norm_b))
 
 def keyword_search_chunks(query: str, chunks: list[str], top_k: int = 4) -> list[str]:
-    words = [w.lower() for w in re.findall(r'\b\w{3,}\b', query)]
+    # Extract substantive words (at least 3 chars), ignoring common conversational stop words
+    stopwords = {
+        "what", "when", "where", "which", "who", "whom", "whose", "why", "how", 
+        "the", "and", "is", "are", "was", "were", "explain", "tell", "about", 
+        "give", "define", "does", "did", "can", "could", "would", "should", "this", "that"
+    }
+    words = [w.lower() for w in re.findall(r'\b\w{3,}\b', query) if w.lower() not in stopwords]
     if not words:
-        return chunks[:top_k]
+        words = [w.lower() for w in re.findall(r'\b\w{3,}\b', query)]
+    if not words:
+        return []
 
     scores = []
     for c in chunks:
@@ -106,34 +124,37 @@ def keyword_search_chunks(query: str, chunks: list[str], top_k: int = 4) -> list
         scores.append(score)
 
     top_indices = np.argsort(scores)[-top_k:][::-1]
+    # Only return chunks that actually contain matching keywords from the query
     matched = [chunks[i] for i in top_indices if scores[i] > 0]
-    return matched if matched else chunks[:top_k]
+    return matched
 
 async def search_chunks(query: str, subject_id: str, top_k: int = 4) -> list[str]:
     # Look for matching subject_id, or search across all loaded documents
     target_data = VECTOR_STORE.get(str(subject_id))
-    if not target_data or not target_data["chunks"]:
-        # Fallback to any available subject
+    if not target_data or not target_data.get("chunks"):
         for s_id, s_data in VECTOR_STORE.items():
             if s_data and s_data.get("chunks"):
                 target_data = s_data
                 break
 
-    if not target_data or not target_data["chunks"]:
+    if not target_data or not target_data.get("chunks"):
         return []
 
     chunks = target_data["chunks"]
     store_embeddings = target_data.get("embeddings")
 
-    # If neural embeddings are available, try vector search
+    # If neural embeddings are available, try vector search with similarity threshold
     if store_embeddings is not None and store_embeddings.size > 0:
         try:
             query_embedding = await get_embeddings([query])
             if query_embedding.size > 0 and query_embedding.shape[1] == store_embeddings.shape[1]:
                 query_emb = query_embedding[0]
                 similarities = [cosine_similarity(query_emb, doc_emb) for doc_emb in store_embeddings]
-                top_indices = np.argsort(similarities)[-top_k:][::-1]
-                return [chunks[i] for i in top_indices]
+                # Filter for chunks with meaningful relevance (cosine >= 0.25)
+                scored = [(similarities[i], chunks[i]) for i in range(len(chunks)) if similarities[i] >= 0.25]
+                if scored:
+                    scored.sort(key=lambda x: x[0], reverse=True)
+                    return [c for _, c in scored[:top_k]]
         except Exception as e:
             print(f"[RAG] Neural search error: {e}, falling back to keyword search")
 

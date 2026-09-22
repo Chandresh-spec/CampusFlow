@@ -73,6 +73,24 @@ export default function AIAssistant() {
     }
   };
 
+  const handleSwitchToOnline = async (userQuery: string) => {
+    setMode('genai');
+    setLoading(true);
+    setMessages(prev => [...prev, { role: 'user', content: `[Online Search] ${userQuery}` }]);
+    try {
+      const res = await api.post('/Genai/api/genai/', { 
+        question: userQuery,
+        prompt: userQuery 
+      });
+      const response = res.data.response || res.data.answer || 'No response received.';
+      setMessages(prev => [...prev, { role: 'ai', content: response }]);
+    } catch (err: any) {
+      toast.error('Failed to get online AI response');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -183,8 +201,36 @@ export default function AIAssistant() {
                     </div>
                   )}
                   <div className={`px-5 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-slate-800 text-white rounded-tr-sm' : 'bg-transparent text-slate-200 prose prose-invert prose-p:leading-relaxed prose-pre:bg-slate-800 prose-pre:border prose-pre:border-slate-700 max-w-[85%]'}`}>
-                    {msg.role === 'user' ? msg.content : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    {msg.role === 'user' ? (
+                      msg.content
+                    ) : (
+                      <>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                        {msg.content.toLowerCase().includes('search online') && (
+                          <div className="mt-3 not-prose">
+                            <button
+                              onClick={() => {
+                                let lastQuery = '';
+                                for (let j = i - 1; j >= 0; j--) {
+                                  if (messages[j].role === 'user') {
+                                    lastQuery = messages[j].content.replace(/^\[Online Search\]\s*/, '');
+                                    break;
+                                  }
+                                }
+                                if (lastQuery) {
+                                  handleSwitchToOnline(lastQuery);
+                                } else {
+                                  setMode('genai');
+                                  toast.success('Switched to General AI mode');
+                                }
+                              }}
+                              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-semibold shadow-md transition"
+                            >
+                              <Sparkles size={14} /> Search Online with General AI
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

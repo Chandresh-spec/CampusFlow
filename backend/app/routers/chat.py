@@ -35,11 +35,33 @@ async def upload_pdf(subject_id: Optional[str] = Form("1"), file: UploadFile = F
 @router.post("/chat")
 @router.post("/chat/")
 async def rag_chat(req: RAGChatRequest, user = Depends(get_optional_current_user)):
-    query = req.question or req.prompt or ""
+    query = (req.question or req.prompt or "").strip()
+    if not query:
+        return {"answer": "Please ask a question.", "response": "Please ask a question."}
+
     target_subject_id = str(req.subject_id or "1")
+
+    # 1. Check if any PDF has been uploaded
+    if not rag_service.has_document(target_subject_id):
+        msg = (
+            "No PDF document has been uploaded for this knowledge context yet. "
+            "Please upload a PDF notes file first using the **Upload PDF Notes** button, "
+            "or switch to **General AI** mode to search online."
+        )
+        return {"answer": msg, "response": msg}
+
+    # 2. Retrieve relevant chunks matching the question
     chunks = await rag_service.search_chunks(query, target_subject_id, top_k=4)
+    if not chunks:
+        msg = (
+            "The answer to this question is not present in the uploaded document. "
+            "Would you like to switch to General AI mode to search online?"
+        )
+        return {"answer": msg, "response": msg}
+
+    # 3. Strictly answer from document context
     context = "\n\n".join(chunks)
-    answer = await llm_service.ask_llm(context, query)
+    answer = await llm_service.ask_rag(context, query)
     return {"answer": answer, "response": answer}
 
 @router.get("/anon-rooms/")
