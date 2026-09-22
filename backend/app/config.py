@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     # ── CORS ─────────────────────────────────────────
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # ── Google OAuth ─────────────────────────────────
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
