@@ -191,7 +191,11 @@ async def student_dashboard(
     user = Depends(require_role(["student", "faculty", "admin"])),
     db: AsyncSession = Depends(get_db)
 ):
-    target_sem = semester or user.sem or 1
+    # Enforce class/semester isolation: Students ONLY ever see their enrolled semester's notes & subjects
+    if user.role == UserRole.student:
+        target_sem = user.sem or 1
+    else:
+        target_sem = semester or user.sem or 1
     
     # 1. Fetch all subjects for the target semester
     subs_query = (
@@ -381,7 +385,13 @@ async def list_resources(
     )
     
     if user.role == UserRole.student:
-        query = query.where(or_(Resource.status == ResourceStatus.APPROVED, Resource.uploaded_by_id == user.id))
+        target_sem = user.sem or 1
+        query = (
+            query.join(Subject, Resource.subject_id == Subject.id)
+            .join(Sem, Subject.sem_id == Sem.id)
+            .where(Sem.sem_nmbr == target_sem)
+            .where(or_(Resource.status == ResourceStatus.APPROVED, Resource.uploaded_by_id == user.id))
+        )
     elif user.role == UserRole.faculty:
         query = query.join(Subject, Resource.subject_id == Subject.id, isouter=True).where(
             or_(Resource.uploaded_by_id == user.id, Subject.faculty_id == user.id)

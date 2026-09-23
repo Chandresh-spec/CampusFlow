@@ -106,6 +106,18 @@ export default function Login() {
   };
 
   const handleGoogleButtonClick = () => {
+    // Google GIS strictly blocks HTTP on non-localhost domains. Open Gmail OTP flow directly if on HTTP
+    if (
+      typeof window !== 'undefined' &&
+      window.location.protocol !== 'https:' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      toast('Google OAuth popup requires HTTPS on custom domains. Please use instant Gmail verification sign-in!', { icon: '🔑' });
+      setShowGmailModal(true);
+      return;
+    }
+
     if (googleClientId && window.google?.accounts?.id) {
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
@@ -113,7 +125,6 @@ export default function Login() {
         }
       });
     } else {
-      // If Google Client ID is not yet configured, open Gmail OTP login
       setShowGmailModal(true);
     }
   };
@@ -138,7 +149,16 @@ export default function Login() {
         router.push('/student');
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.response?.data?.message || 'Login failed');
+      const detail = err.response?.data?.detail || err.response?.data?.message || 'Login failed';
+      if (err.response?.status === 403 && detail.toLowerCase().includes('email not verified')) {
+        toast.error(detail, { duration: 6000 });
+        if (username.includes('@')) {
+          setGmailEmail(username);
+        }
+        setShowGmailModal(true);
+      } else {
+        toast.error(detail);
+      }
     } finally {
       setLoading(false);
     }

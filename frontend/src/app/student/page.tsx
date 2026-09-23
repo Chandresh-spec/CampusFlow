@@ -133,13 +133,15 @@ export default function StudentDashboard() {
     }
   };
 
-  // Initialize selected semester from user's registered semester
+  // Strictly lock student semester to their registered semester
   useEffect(() => {
-    if (user?.sem || user?.semester) {
-      const userSem = Number(user.sem || user.semester);
-      if (userSem >= 1 && userSem <= 8) {
-        setSelectedSem(userSem);
-      }
+    const userRole = (user?.role || '').toLowerCase();
+    const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+    const userSem = Number(user?.sem || user?.semester || 1);
+    if (!isTeacher) {
+      setSelectedSem(userSem >= 1 && userSem <= 8 ? userSem : 1);
+    } else if (userSem >= 1 && userSem <= 8) {
+      setSelectedSem(userSem);
     }
   }, [user]);
 
@@ -489,36 +491,45 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 tracking-wider uppercase">
                 <Layers size={15} className="text-slate-500" />
-                <span>Select Semester</span>
+                <span>Class / Semester</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                 <Eye size={14} className="text-slate-400" />
-                <span>Currently viewing Sem {selectedSem}</span>
+                <span>Showing Semester {selectedSem}</span>
               </div>
             </div>
 
-            {/* Semester Pill Buttons 1 to 8 */}
-            <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((semNum) => {
-                const isActive = selectedSem === semNum;
-                return (
-                  <button
-                    key={semNum}
-                    onClick={() => {
-                      setSelectedSem(semNum);
-                      setSelectedSubjectId(null);
-                    }}
-                    className={`px-5 py-2 rounded-full text-xs font-semibold transition shrink-0 shadow-sm ${
-                      isActive
-                        ? 'bg-[#059669] text-white shadow-emerald-700/20'
-                        : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    Semester {semNum}
-                  </button>
-                );
-              })}
-            </div>
+            {/* If Student, show their locked enrolled class badge; if faculty/admin, allow switching */}
+            {(user?.role || '').toLowerCase() === 'student' ? (
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-2 bg-[#059669] text-white px-5 py-2.5 rounded-full text-xs font-bold shadow-xs">
+                  <CheckCircle2 size={16} className="text-white" />
+                  <span>Enrolled: Semester {registeredSem} (Only your class notes & subjects are displayed)</span>
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((semNum) => {
+                  const isActive = selectedSem === semNum;
+                  return (
+                    <button
+                      key={semNum}
+                      onClick={() => {
+                        setSelectedSem(semNum);
+                        setSelectedSubjectId(null);
+                      }}
+                      className={`px-5 py-2 rounded-full text-xs font-semibold transition shrink-0 shadow-sm ${
+                        isActive
+                          ? 'bg-[#059669] text-white shadow-emerald-700/20'
+                          : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      Semester {semNum}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* ── Semester Subjects Grid ─────────────────────────────── */}

@@ -27,6 +27,7 @@ def format_user_dict(u: User) -> dict:
         "mobile_number": u.mobile_number,
         "usn": u.usn,
         "sem": u.sem,
+        "is_verified": bool(getattr(u, "is_verified", True)),
     }
 
 @router.post("/login/", response_model=Dict[str, Any])
@@ -38,6 +39,13 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
+        )
+
+    # Strictly block unverified users from dashboard
+    if hasattr(user, "is_verified") and user.is_verified is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your Gmail address to access the dashboard."
         )
         
     # Honor explicit role chosen at login or auto-detect teacher/faculty usernames
@@ -88,7 +96,8 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         role=role_val,
         mobile_number=req.mobile_number,
         usn=req.usn,
-        sem=sem_val
+        sem=sem_val,
+        is_verified=False
     )
     db.add(user)
     await db.commit()
@@ -199,7 +208,8 @@ async def verify_register(req: VerifyRegisterRequest, db: AsyncSession = Depends
         role=role_val,
         mobile_number=req.mobile_number,
         usn=req.usn,
-        sem=sem_val
+        sem=sem_val,
+        is_verified=True
     )
     db.add(user)
     await db.commit()
@@ -294,7 +304,8 @@ async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)
             email=email,
             hashed_password=auth_service.hash_password(secrets.token_urlsafe(16)),
             role=role_val,
-            is_active=True
+            is_active=True,
+            is_verified=True
         )
         db.add(user)
         await db.commit()
@@ -302,6 +313,7 @@ async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)
     else:
         if req.role and req.role.strip().lower() in ["teacher", "faculty", "professor"]:
             user.role = UserRole.faculty
+        user.is_verified = True
         user.last_login = auth_service.get_current_time()
         await db.commit()
         await db.refresh(user)
@@ -373,7 +385,8 @@ async def verify_gmail_login(req: VerifyGmailLoginRequest, db: AsyncSession = De
             email=email,
             hashed_password=auth_service.hash_password(secrets.token_urlsafe(16)),
             role=role_val,
-            is_active=True
+            is_active=True,
+            is_verified=True
         )
         db.add(user)
         await db.commit()
@@ -381,6 +394,7 @@ async def verify_gmail_login(req: VerifyGmailLoginRequest, db: AsyncSession = De
     else:
         if req.role and req.role.strip().lower() in ["teacher", "faculty", "professor"]:
             user.role = UserRole.faculty
+        user.is_verified = True
         user.last_login = auth_service.get_current_time()
         await db.commit()
         await db.refresh(user)
@@ -390,6 +404,59 @@ async def verify_gmail_login(req: VerifyGmailLoginRequest, db: AsyncSession = De
     
     return {
         "message": "Gmail login successful",
+        "user": format_user_dict(user),
+        "tokens": {
+            "access": access,
+            "refresh": refresh
+        }
+    }
+
+@router.post("/send-verification-otp/")
+@router.post("/auth/send-verification-otp/")
+async def send_verification_otp(req: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    email = req.email.strip().lower()
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User with this email not found")
+        
+    otp = otp_service.generate_otp()
+    key = f"verify_email_{email}"
+    otp_service.store_otp(key, otp, ttl=600)
+    await email_service.send_email(
+        email,
+        "Smart College - Verify your Gmail",
+        f"Your verification code is: {otp}\nValid for 10 minutes."
+    )
+    return {"message": "Verification code sent to your Gmail"}
+
+@router.post("/verify-account/")
+@router.post("/auth/verify-account/")
+async def verify_account(req: VerifyOTPRequest, db: AsyncSession = Depends(get_db)):
+    email = req.email.strip().lower()
+    key = f"verify_email_{email}"
+    
+    is_valid = otp_service.verify_otp(key, req.otp) or otp_service.verify_otp(f"register_otp_{email}", req.otp)
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
+        
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+    user.is_verified = True
+    user.last_login = auth_service.get_current_time()
+    await db.commit()
+    await db.refresh(user)
+    
+    otp_service.delete_otp(key)
+    otp_service.delete_otp(f"register_otp_{email}")
+    
+    access = auth_service.create_access_token(user_id=user.id)
+    refresh = auth_service.create_refresh_token(user_id=user.id)
+    return {
+        "message": "Email verified successfully! You may now access the dashboard.",
         "user": format_user_dict(user),
         "tokens": {
             "access": access,

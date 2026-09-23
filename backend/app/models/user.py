@@ -29,6 +29,7 @@ class User(Base):
     usn = Column(String(20), unique=True, nullable=True, index=True)
     sem = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 

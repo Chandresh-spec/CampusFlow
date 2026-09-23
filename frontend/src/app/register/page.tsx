@@ -159,34 +159,33 @@ export default function Register() {
         payload.sem = parseInt(formData.semester) || 1;
       }
 
-      // If OTP flow was initiated or OTP entered, verify through /api/verify-register/
-      if (otpSent || otp.trim().length > 0) {
-        if (!otp.trim()) {
-          toast.error('Please enter the 6-digit verification code sent to your Gmail');
-          setLoading(false);
-          return;
-        }
-        payload.otp = otp.trim();
-        const res = await api.post('/api/verify-register/', payload);
-        toast.success('Gmail verified & registration successful!');
-        if (res.data?.tokens?.access) {
-          login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
-          setTimeout(() => {
-            const userRole = (res.data.user.role || role).toLowerCase();
-            const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
-            if (isTeacher) {
-              router.push('/teacher');
-            } else {
-              router.push('/student');
-            }
-          }, 1000);
+      // Strictly enforce Gmail OTP verification before granting dashboard access
+      if (!otp.trim()) {
+        if (!otpSent) {
+          await handleSendRegisterOtp();
+          toast('We have sent a verification code to your Gmail. Please enter it below to complete registration.', { icon: '📧' });
         } else {
-          setTimeout(() => router.push('/login'), 1500);
+          toast.error('Please enter the 6-digit verification code sent to your Gmail');
         }
+        setLoading(false);
+        return;
+      }
+
+      payload.otp = otp.trim();
+      const res = await api.post('/api/verify-register/', payload);
+      toast.success('Gmail verified & registration successful!');
+      if (res.data?.tokens?.access) {
+        login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+        setTimeout(() => {
+          const userRole = (res.data.user.role || role).toLowerCase();
+          const isTeacher = userRole === 'faculty' || userRole === 'teacher' || userRole === 'admin';
+          if (isTeacher) {
+            router.push('/teacher');
+          } else {
+            router.push('/student');
+          }
+        }, 1000);
       } else {
-        // Direct registration fallback
-        await api.post('/api/register/', payload);
-        toast.success('Registration successful! Please log in.');
         setTimeout(() => router.push('/login'), 1500);
       }
     } catch (err: any) {

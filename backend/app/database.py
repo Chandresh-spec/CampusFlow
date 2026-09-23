@@ -69,6 +69,11 @@ async def init_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT 1"))
+        except Exception:
+            pass  # Column already exists or table freshly created
 
     async with async_session_factory() as session:
         try:

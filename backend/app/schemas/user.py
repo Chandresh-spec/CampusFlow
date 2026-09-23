@@ -10,6 +10,7 @@ class UserResponse(BaseModel):
     mobile_number: Optional[str] = None
     usn: Optional[str] = None
     sem: Optional[int] = None
+    is_verified: Optional[bool] = True
     date_joined: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
