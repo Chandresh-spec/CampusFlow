@@ -75,6 +75,12 @@ async def init_db():
         except Exception:
             pass  # Column already exists or table freshly created
 
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("UPDATE resources SET status = 'APPROVED' WHERE status = 'PENDING'"))
+        except Exception:
+            pass
+
     async with async_session_factory() as session:
         try:
             from app.models.academic import Sem, Subject

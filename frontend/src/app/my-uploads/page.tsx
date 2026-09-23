@@ -96,6 +96,14 @@ export default function MyUploads() {
       toast.error('Please select a file to upload');
       return;
     }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('File size exceeds maximum 50MB limit');
+      return;
+    }
+    if (!uploadData.title.trim()) {
+      toast.error('Please enter a title for the resource');
+      return;
+    }
     if (!uploadData.subject_id) {
       toast.error('Please select a subject');
       return;
@@ -123,7 +131,7 @@ export default function MyUploads() {
 
         if (uploadResp.ok) {
           await api.post('/resource/api/resources/', {
-            title: uploadData.title,
+            title: uploadData.title.trim(),
             description: uploadData.description || '',
             subject_id: Number(uploadData.subject_id),
             file_type: uploadData.file_type || 'PDF',
@@ -141,7 +149,7 @@ export default function MyUploads() {
     if (!uploadedSuccessfully) {
       try {
         const formData = new FormData();
-        formData.append('title', uploadData.title);
+        formData.append('title', uploadData.title.trim());
         formData.append('description', uploadData.description || '');
         formData.append('subject_id', uploadData.subject_id);
         formData.append('subject', uploadData.subject_id);
@@ -160,11 +168,13 @@ export default function MyUploads() {
 
     setUploading(false);
     if (uploadedSuccessfully) {
-      toast.success('Resource uploaded successfully!');
+      toast.success('Resource uploaded & published for students successfully!');
       setIsModalOpen(false);
       setFile(null);
       setUploadData({ title: '', description: '', subject_id: '', file_type: 'PDF' });
       queryClient.invalidateQueries({ queryKey: ['myResources'] });
+      queryClient.invalidateQueries({ queryKey: ['studentDashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['teacherStudentDashboard'] });
     }
   };
 

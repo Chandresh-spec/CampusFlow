@@ -36,14 +36,39 @@ async def upload_direct(
     user = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    target_subject_id = subject_id or subject or 1
+    # 1. Validation
+    title = title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Resource title is required")
+        
     content = await file.read()
     file_size = len(content)
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if file_size > 50 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds maximum 50MB limit")
+        
+    raw_ext = (file.filename or "").split(".")[-1].lower() if file.filename and "." in file.filename else ""
+    allowed_exts = {"pdf", "ppt", "pptx", "doc", "docx", "txt", "png", "jpg", "jpeg"}
+    if raw_ext and raw_ext not in allowed_exts:
+        raise HTTPException(status_code=400, detail=f"Unsupported file format .{raw_ext}. Supported: PDF, PPT, DOC, TXT, Images")
+
+    target_subject_id = subject_id or subject
+    if not target_subject_id:
+        first_sub = (await db.execute(select(Subject).limit(1))).scalar_one_or_none()
+        target_subject_id = first_sub.id if first_sub else 1
+    else:
+        sub_check = (await db.execute(select(Subject).where(Subject.id == target_subject_id))).scalar_one_or_none()
+        if not sub_check:
+            first_sub = (await db.execute(select(Subject).limit(1))).scalar_one_or_none()
+            target_subject_id = first_sub.id if first_sub else target_subject_id
+
+    # 2. Upload to S3
     unique_id = uuid.uuid4().hex
     safe_filename = file.filename.replace(" ", "_") if file.filename else "uploaded_file"
     s3_key = f"resources/{unique_id}_{safe_filename}"
-    
     content_type = file.content_type or "application/octet-stream"
+    
     s3_uploaded = False
     try:
         await s3_service.upload_file_bytes(s3_key, content, content_type)
@@ -86,7 +111,8 @@ async def upload_direct(
     else:
         ft_enum = FileType.PDF
 
-    is_auto_approve = user.role in [UserRole.faculty, UserRole.admin]
+    user_role_str = (user.role.value if hasattr(user.role, "value") else str(user.role)).lower()
+    is_auto_approve = user_role_str in ["faculty", "teacher", "admin"]
     status_val = ResourceStatus.APPROVED if is_auto_approve else ResourceStatus.PENDING
 
     resource = Resource(
@@ -437,7 +463,8 @@ async def list_resources(
 
 @router.post("/resources/", status_code=status.HTTP_201_CREATED)
 async def create_resource(req: ResourceCreate, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    is_auto_approve = user.role in [UserRole.faculty, UserRole.admin]
+    user_role_str = (user.role.value if hasattr(user.role, "value") else str(user.role)).lower()
+    is_auto_approve = user_role_str in ["faculty", "teacher", "admin"]
     status_val = ResourceStatus.APPROVED if is_auto_approve else ResourceStatus.PENDING
     is_official = is_auto_approve
     
