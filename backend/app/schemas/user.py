@@ -20,5 +20,8 @@ class UserUpdateRequest(BaseModel):
     sem: Optional[int] = None
     semester: Optional[int] = None
     role: Optional[str] = None
+    faculty_code: Optional[str] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
 
 ProfileUpdateRequest = UserUpdateRequest
