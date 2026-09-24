@@ -38,10 +38,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: 331682494269-6s3e4o9aadtrr2u5sqv6fptqkmmuivlv.apps.googleusercontent.com
     container_name: smart_college_frontend
     restart: always
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=331682494269-6s3e4o9aadtrr2u5sqv6fptqkmmuivlv.apps.googleusercontent.com
     depends_on:
       backend:
         condition: service_healthy

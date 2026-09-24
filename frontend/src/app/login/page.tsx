@@ -61,9 +61,10 @@ export default function Login() {
   const [loginOtpLoading, setLoginOtpLoading] = useState(false);
   const [loginResendCooldown, setLoginResendCooldown] = useState(0);
 
-  // ── Google OAuth Token Client State ─────────────────────────
+  // ── Google OAuth Setup ──────────────────────────────────────
+  const DEFAULT_GOOGLE_CLIENT_ID = '331682494269-6s3e4o9aadtrr2u5sqv6fptqkmmuivlv.apps.googleusercontent.com';
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
   const [tokenClient, setTokenClient] = useState<any>(null);
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
   // Resend cooldown timer
   useEffect(() => {
@@ -108,27 +109,9 @@ export default function Login() {
     }
   };
 
-  const initGoogleClient = () => {
-    if (!googleClientId) return;
-
-    // 1. One-Tap / Credential ID Token initialization
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: (response: any) => {
-            if (response.credential) {
-              handleGoogleTokenResponse(response.credential);
-            }
-          },
-        });
-      } catch (err) {
-        console.warn('Google GSI init failed:', err);
-      }
-    }
-
-    // 2. OAuth 2.0 Token Client (Popup flow for direct button click)
-    if (window.google?.accounts?.oauth2) {
+  const getOrInitTokenClient = () => {
+    if (tokenClient) return tokenClient;
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
       try {
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: googleClientId,
@@ -157,28 +140,51 @@ export default function Login() {
           },
         });
         setTokenClient(client);
+        return client;
       } catch (err) {
-        console.warn('Google OAuth2 init failed:', err);
+        console.warn('Google OAuth2 init error:', err);
       }
     }
+    return null;
+  };
+
+  const initGoogleClient = () => {
+    if (!googleClientId) return;
+
+    // 1. One-Tap / Credential ID Token initialization
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: (response: any) => {
+            if (response.credential) {
+              handleGoogleTokenResponse(response.credential);
+            }
+          },
+        });
+      } catch (err) {
+        console.warn('Google GSI init failed:', err);
+      }
+    }
+
+    // 2. OAuth 2.0 Token Client initialization
+    getOrInitTokenClient();
   };
 
   const handleGoogleButtonClick = () => {
-    if (googleClientId) {
-      if (tokenClient) {
-        tokenClient.requestAccessToken();
-        return;
-      }
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            setShowGmailModal(true);
-          }
-        });
-        return;
-      }
+    const client = getOrInitTokenClient();
+    if (client) {
+      client.requestAccessToken();
+      return;
     }
-    // If Google Client ID not configured yet, fallback to Gmail OTP modal
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setShowGmailModal(true);
+        }
+      });
+      return;
+    }
     setShowGmailModal(true);
   };
 

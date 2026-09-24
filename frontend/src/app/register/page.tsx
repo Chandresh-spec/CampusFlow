@@ -37,25 +37,14 @@ export default function Register() {
     usn: '',
     semester: '1',
   });
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpSending, setOtpSending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
-  // ── Cooldown timer for resending OTP ─────────────────────────
-  useEffect(() => {
-    let timer: any;
-    if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
-  // ── Google Identity Services (GIS) Setup ────────────────────
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  // ── Google Identity Services & OAuth 2.0 Setup ──────────────
+  const DEFAULT_GOOGLE_CLIENT_ID = '331682494269-6s3e4o9aadtrr2u5sqv6fptqkmmuivlv.apps.googleusercontent.com';
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+  const [tokenClient, setTokenClient] = useState<any>(null);
 
   useEffect(() => {
     if (!document.getElementById('google-gsi-client')) {
@@ -73,17 +62,58 @@ export default function Register() {
     }
   }, [role]);
 
+  const handleGoogleTokenResponse = async (credential: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post('/api/auth/google/', {
+        credential,
+        role: role.toLowerCase(),
+      });
+      login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+      toast.success(`Welcome to CampusFlow, ${res.data.user.username}!`);
+      if (res.data.user.role?.toLowerCase() === 'student') {
+        router.push('/student');
+      } else {
+        router.push('/teacher');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Google sign-up failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const initGoogleClient = () => {
-    if (googleClientId && window.google?.accounts?.id) {
+    if (!googleClientId) return;
+
+    // 1. One-Tap / Credential ID Token initialization
+    if (window.google?.accounts?.id) {
       try {
         window.google.accounts.id.initialize({
           client_id: googleClientId,
           callback: async (response: any) => {
             if (response.credential) {
+              handleGoogleTokenResponse(response.credential);
+            }
+          },
+        });
+      } catch (err) {
+        console.warn('Google GSI init failed:', err);
+      }
+    }
+
+    // 2. OAuth 2.0 Token Client (Popup flow for direct click)
+    if (window.google?.accounts?.oauth2) {
+      try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse && tokenResponse.access_token) {
               setLoading(true);
               try {
                 const res = await api.post('/api/auth/google/', {
-                  credential: response.credential,
+                  access_token: tokenResponse.access_token,
                   role: role.toLowerCase(),
                 });
                 login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
@@ -101,53 +131,27 @@ export default function Register() {
             }
           },
         });
+        setTokenClient(client);
       } catch (err) {
-        console.warn('Google GSI init failed:', err);
+        console.warn('Google OAuth2 init error:', err);
       }
     }
   };
 
   const handleGoogleSignUp = () => {
-    if (googleClientId && window.google?.accounts?.id) {
+    if (tokenClient) {
+      tokenClient.requestAccessToken();
+      return;
+    }
+    if (window.google?.accounts?.id) {
       window.google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          toast('Please register below or use passwordless Gmail sign-in on the login page.', {
-            icon: 'ℹ️',
-          });
+          toast.error('Google One Tap popup was closed or blocked. Please retry.');
         }
       });
-    } else {
-      toast('Google Cloud OAuth not configured. Please use Gmail OTP verification below!', {
-        icon: '💡',
-      });
-    }
-  };
-
-  // ── Send Registration OTP via Gmail ─────────────────────────
-  const handleSendRegisterOtp = async () => {
-    if (!formData.email || !formData.email.includes('@')) {
-      toast.error('Please enter a valid email address first');
       return;
     }
-    if (!formData.username) {
-      toast.error('Please enter a username first');
-      return;
-    }
-
-    setOtpSending(true);
-    try {
-      const res = await api.post('/api/send-register-otp/', {
-        email: formData.email,
-        username: formData.username,
-      });
-      toast.success(res.data.message || 'Verification code sent to your Gmail!');
-      setOtpSent(true);
-      setCountdown(60);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to send verification code');
-    } finally {
-      setOtpSending(false);
-    }
+    toast.error('Google Sign-In is initializing, please click again in a second.');
   };
 
   // ── Submit Registration ─────────────────────────────────────
@@ -169,33 +173,17 @@ export default function Register() {
         payload.sem = parseInt(formData.semester) || 1;
       }
 
-      // If OTP flow was initiated or OTP entered, verify through /api/verify-register/
-      if (otpSent || otp.trim().length > 0) {
-        if (!otp.trim()) {
-          toast.error('Please enter the 6-digit verification code sent to your Gmail');
-          setLoading(false);
-          return;
-        }
-        payload.otp = otp.trim();
-        const res = await api.post('/api/verify-register/', payload);
-        toast.success('Gmail verified & registration successful!');
-        if (res.data?.tokens?.access) {
-          login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
-          toast.success('Gmail verified & registration successful!');
-          if (res.data.user.role?.toLowerCase() === 'student') {
-            router.push('/student');
-          } else {
-            router.push('/teacher');
-          }
+      const res = await api.post('/api/register/', payload);
+      toast.success('Registration successful!');
+      if (res.data?.tokens?.access) {
+        login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+        if (res.data.user.role?.toLowerCase() === 'student') {
+          router.push('/student');
         } else {
-          toast.success('Registration successful! Please log in.');
-          setTimeout(() => router.push('/login'), 1200);
+          router.push('/teacher');
         }
       } else {
-        // Direct registration fallback
-        await api.post('/api/register/', payload);
-        toast.success('Registration successful! Please log in.');
-        setTimeout(() => router.push('/login'), 1200);
+        setTimeout(() => router.push('/login'), 1000);
       }
     } catch (err: any) {
       toast.error(err.response?.data?.detail || err.response?.data?.message || 'Registration failed');
@@ -395,45 +383,6 @@ export default function Register() {
                     </div>
                   </div>
                 </>
-              )}
-            </div>
-
-            {/* ── Optional Gmail OTP Verification Box ──────────────────── */}
-            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/90 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs font-bold text-[#065f46] flex items-center gap-1.5">
-                    <ShieldCheck size={15} className="text-[#059669]" />
-                    <span>Gmail OTP Verification</span>
-                  </p>
-                  <p className="text-[11px] text-slate-600">
-                    Verify ownership of your email address for instant verified status
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSendRegisterOtp}
-                  disabled={otpSending || countdown > 0}
-                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-emerald-300 text-[#065f46] text-xs font-bold transition shadow-xs disabled:opacity-50 shrink-0"
-                >
-                  {otpSending ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : otpSent ? 'Resend OTP' : 'Send Code to Gmail'}
-                </button>
-              </div>
-
-              {otpSent && (
-                <div className="pt-2 border-t border-emerald-200">
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase tracking-wider">
-                    Enter 6-Digit OTP Code
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="123456"
-                    className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none focus:border-emerald-500"
-                  />
-                </div>
               )}
             </div>
 
