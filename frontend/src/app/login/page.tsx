@@ -53,8 +53,26 @@ export default function Login() {
   const [gmailRole, setGmailRole] = useState('student');
   const [gmailLoading, setGmailLoading] = useState(false);
 
-  // ── Google Identity Services (GIS) Setup ────────────────────
+  // ── Login Email OTP 2FA State (Redis-backed) ────────────────
+  const [showLoginOtpModal, setShowLoginOtpModal] = useState(false);
+  const [loginUserId, setLoginUserId] = useState<number | null>(null);
+  const [loginMaskedEmail, setLoginMaskedEmail] = useState('');
+  const [loginOtp, setLoginOtp] = useState('');
+  const [loginOtpLoading, setLoginOtpLoading] = useState(false);
+  const [loginResendCooldown, setLoginResendCooldown] = useState(0);
+
+  // ── Google OAuth Token Client State ─────────────────────────
+  const [tokenClient, setTokenClient] = useState<any>(null);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (loginResendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setLoginResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loginResendCooldown]);
 
   useEffect(() => {
     if (!document.getElementById('google-gsi-client')) {
@@ -70,7 +88,7 @@ export default function Login() {
     } else {
       initGoogleClient();
     }
-  }, []);
+  }, [selectedRole]);
 
   const handleGoogleTokenResponse = async (credential: string) => {
     setLoading(true);
@@ -91,7 +109,10 @@ export default function Login() {
   };
 
   const initGoogleClient = () => {
-    if (googleClientId && window.google?.accounts?.id) {
+    if (!googleClientId) return;
+
+    // 1. One-Tap / Credential ID Token initialization
+    if (window.google?.accounts?.id) {
       try {
         window.google.accounts.id.initialize({
           client_id: googleClientId,
@@ -105,26 +126,81 @@ export default function Login() {
         console.warn('Google GSI init failed:', err);
       }
     }
-  };
 
-  const handleGoogleButtonClick = () => {
-    if (googleClientId && window.google?.accounts?.id) {
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          setShowGmailModal(true);
-        }
-      });
-    } else {
-      setShowGmailModal(true);
+    // 2. OAuth 2.0 Token Client (Popup flow for direct button click)
+    if (window.google?.accounts?.oauth2) {
+      try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              setLoading(true);
+              try {
+                const res = await api.post('/api/auth/google/', {
+                  access_token: tokenResponse.access_token,
+                  role: selectedRole,
+                });
+                login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+                toast.success(`Welcome back, ${res.data.user.username}!`);
+                if (res.data.user.role?.toLowerCase() === 'student') {
+                  router.push('/student');
+                } else {
+                  router.push('/teacher');
+                }
+              } catch (err: any) {
+                toast.error(err.response?.data?.detail || 'Google sign-in failed');
+              } finally {
+                setLoading(false);
+              }
+            }
+          },
+        });
+        setTokenClient(client);
+      } catch (err) {
+        console.warn('Google OAuth2 init failed:', err);
+      }
     }
   };
 
-  // ── Standard Username/Password Login ────────────────────────
+  const handleGoogleButtonClick = () => {
+    if (googleClientId) {
+      if (tokenClient) {
+        tokenClient.requestAccessToken();
+        return;
+      }
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setShowGmailModal(true);
+          }
+        });
+        return;
+      }
+    }
+    // If Google Client ID not configured yet, fallback to Gmail OTP modal
+    setShowGmailModal(true);
+  };
+
+  // ── Standard Username/Password Login with Redis OTP Verification ──
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       const res = await api.post('/api/login/', { username, password });
+      
+      // If backend requires 2FA Email OTP verification (backed by Redis)
+      if (res.data.requires_otp) {
+        setLoginUserId(res.data.user_id);
+        setLoginMaskedEmail(res.data.email || 'your registered email');
+        setShowLoginOtpModal(true);
+        setLoginOtp('');
+        setLoginResendCooldown(60);
+        toast.success(res.data.message || 'Verification code sent to your email');
+        return;
+      }
+
+      // Direct login if no OTP required
       login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
       toast.success('Login successful!');
       if (res.data.user.role?.toLowerCase() === 'student') {
@@ -136,6 +212,44 @@ export default function Login() {
       toast.error(err.response?.data?.detail || err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyLoginOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginOtp || loginOtp.trim().length < 6) {
+      toast.error('Please enter the 6-digit verification code');
+      return;
+    }
+    setLoginOtpLoading(true);
+    try {
+      const res = await api.post('/api/verify-login-otp/', {
+        user_id: loginUserId,
+        otp: loginOtp.trim(),
+      });
+      login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+      toast.success(`Welcome back, ${res.data.user.username}!`);
+      setShowLoginOtpModal(false);
+      if (res.data.user.role?.toLowerCase() === 'student') {
+        router.push('/student');
+      } else {
+        router.push('/teacher');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Invalid or expired verification code');
+    } finally {
+      setLoginOtpLoading(false);
+    }
+  };
+
+  const handleResendLoginOtp = async () => {
+    if (loginResendCooldown > 0 || !loginUserId) return;
+    try {
+      const res = await api.post('/api/resend-login-otp/', { user_id: loginUserId });
+      toast.success(res.data.message || 'New verification code sent!');
+      setLoginResendCooldown(60);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Failed to resend code');
     }
   };
 
@@ -525,6 +639,98 @@ export default function Login() {
         </div>
 
       </div>
+
+      {/* ── Redis Login Email Verification Modal (2FA) ──────────────── */}
+      {showLoginOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl relative">
+            <button
+              onClick={() => setShowLoginOtpModal(false)}
+              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-[#059669]">
+                <ShieldCheck size={26} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Email Verification</h3>
+                <p className="text-xs text-slate-500">Secure two-step verification</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-5 leading-relaxed">
+              We just sent a 6-digit verification code to your registered email{' '}
+              <span className="font-bold text-[#059669] bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                {loginMaskedEmail}
+              </span>
+              . Please enter it below to complete sign in.
+            </p>
+
+            <form onSubmit={handleVerifyLoginOtp} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  6-Digit Verification Code
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <KeyRound size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    autoFocus
+                    value={loginOtp}
+                    onChange={(e) => setLoginOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="• • • • • •"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl pl-11 pr-4 py-3 text-lg font-mono tracking-widest text-center outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginOtpLoading || loginOtp.length < 6}
+                className="w-full py-3.5 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm shadow-md transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loginOtpLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Verifying Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Verify & Continue</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={handleResendLoginOtp}
+                disabled={loginResendCooldown > 0}
+                className="font-bold text-[#059669] hover:text-[#047857] disabled:text-slate-400 disabled:cursor-not-allowed transition"
+              >
+                {loginResendCooldown > 0 ? `Resend Code (${loginResendCooldown}s)` : 'Resend Code'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowLoginOtpModal(false)}
+                className="text-slate-500 hover:text-slate-800 transition"
+              >
+                Cancel / Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Forgot Password Modal ───────────────────────────────────── */}
       {showForgotModal && (

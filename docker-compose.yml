@@ -1,4 +1,12 @@
 services:
+  # ── Redis Cache / OTP Store ─────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: smart_college_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
   # ── FastAPI Backend ─────────────────────────────────
   backend:
     build:
@@ -15,6 +23,9 @@ services:
     environment:
       - PYTHONPATH=/app
       - DATABASE_URL=sqlite+aiosqlite:////app/data/smart_college.db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

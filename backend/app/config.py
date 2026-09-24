@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # ── Database (PostgreSQL / SQLite) ───────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./smart_college.db"
 
+    # ── Redis (OTP & Cache) ──────────────────────────
+    REDIS_URL: str = "redis://localhost:6379/0"
+
     # ── AWS S3 ───────────────────────────────────────
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""

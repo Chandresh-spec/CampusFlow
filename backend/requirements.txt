@@ -16,11 +16,12 @@ aiosqlite==0.20.0
 alembic==1.13.3
 greenlet==3.1.1
 
-# Auth
+# Auth & Cache
 python-jose[cryptography]==3.3.0
 bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.12
+redis==5.0.8
 
 # AWS
 boto3==1.35.36

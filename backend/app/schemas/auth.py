@@ -75,3 +75,14 @@ class VerifyGmailLoginRequest(BaseModel):
     otp: str
     role: Optional[str] = "student"
 
+class VerifyLoginOTPRequest(BaseModel):
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+    otp: str
+
+class ResendLoginOTPRequest(BaseModel):
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+

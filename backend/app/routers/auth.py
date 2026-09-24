@@ -13,10 +13,23 @@ from app.schemas.auth import (
     ForgotPasswordRequest, VerifyOTPRequest, ResetPasswordRequest,
     SendRegisterOTPRequest, VerifyRegisterRequest,
     GoogleAuthRequest, SendGmailLoginOTPRequest, VerifyGmailLoginRequest,
+    VerifyLoginOTPRequest, ResendLoginOTPRequest,
     TokenResponse, UserResponse
 )
 
 router = APIRouter(prefix="/api", tags=["auth"])
+
+def mask_email(email: str) -> str:
+    if not email or "@" not in email:
+        return email
+    parts = email.split("@")
+    name = parts[0]
+    domain = parts[1]
+    if len(name) <= 2:
+        masked_name = name[0] + "*"
+    else:
+        masked_name = name[0] + "*" * (len(name) - 2) + name[-1]
+    return f"{masked_name}@{domain}"
 
 def format_user_dict(u: User) -> dict:
     return {
@@ -31,7 +44,9 @@ def format_user_dict(u: User) -> dict:
 
 @router.post("/login/", response_model=Dict[str, Any])
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.username == req.username))
+    result = await db.execute(
+        select(User).where((User.username == req.username) | (User.email == req.username))
+    )
     user = result.scalar_one_or_none()
     
     if not user or not auth_service.verify_password(req.password, user.hashed_password):
@@ -39,13 +54,61 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
-        
-    access = auth_service.create_access_token(user_id=user.id)
-    refresh = auth_service.create_refresh_token(user_id=user.id)
-    
+
+    # Generate 6-digit OTP and store in Redis with 5-minute TTL
+    otp = otp_service.generate_otp()
+    key = f"login_otp_{user.id}"
+    otp_service.store_otp(key, otp, ttl=300)
+
+    # Send verification email via SMTP (or console log fallback)
+    email_subject = "CampusFlow - Login Verification Code"
+    email_body = (
+        f"Hello {user.username},\n\n"
+        f"Your login verification code is: {otp}\n\n"
+        f"This code will expire in 5 minutes.\n"
+        f"If you did not attempt to sign in, please secure your account immediately.\n\n"
+        f"Best regards,\nCampusFlow Security"
+    )
+    await email_service.send_email(user.email, email_subject, email_body)
+
+    return {
+        "requires_otp": True,
+        "message": f"Verification code sent to {mask_email(user.email)}",
+        "user_id": user.id,
+        "email": mask_email(user.email),
+        "username": user.username
+    }
+
+@router.post("/verify-login-otp/", response_model=Dict[str, Any])
+@router.post("/auth/verify-login-otp/", response_model=Dict[str, Any])
+async def verify_login_otp(req: VerifyLoginOTPRequest, db: AsyncSession = Depends(get_db)):
+    user = None
+    if req.user_id:
+        result = await db.execute(select(User).where(User.id == req.user_id))
+        user = result.scalar_one_or_none()
+    elif req.email:
+        result = await db.execute(select(User).where(User.email == req.email.strip().lower()))
+        user = result.scalar_one_or_none()
+    elif req.username:
+        result = await db.execute(select(User).where(User.username == req.username.strip()))
+        user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    key = f"login_otp_{user.id}"
+    if not otp_service.verify_otp(key, req.otp.strip()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification code")
+
+    # Clean up OTP from Redis
+    otp_service.delete_otp(key)
+
     user.last_login = auth_service.get_current_time()
     await db.commit()
-    
+
+    access = auth_service.create_access_token(user_id=user.id)
+    refresh = auth_service.create_refresh_token(user_id=user.id)
+
     return {
         "message": "Login successful",
         "user": format_user_dict(user),
@@ -53,6 +116,41 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             "access": access,
             "refresh": refresh
         }
+    }
+
+@router.post("/resend-login-otp/")
+@router.post("/auth/resend-login-otp/")
+async def resend_login_otp(req: ResendLoginOTPRequest, db: AsyncSession = Depends(get_db)):
+    user = None
+    if req.user_id:
+        result = await db.execute(select(User).where(User.id == req.user_id))
+        user = result.scalar_one_or_none()
+    elif req.email:
+        result = await db.execute(select(User).where(User.email == req.email.strip().lower()))
+        user = result.scalar_one_or_none()
+    elif req.username:
+        result = await db.execute(select(User).where(User.username == req.username.strip()))
+        user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    otp = otp_service.generate_otp()
+    key = f"login_otp_{user.id}"
+    otp_service.store_otp(key, otp, ttl=300)
+
+    email_subject = "CampusFlow - New Login Verification Code"
+    email_body = (
+        f"Hello {user.username},\n\n"
+        f"Your new login verification code is: {otp}\n\n"
+        f"This code will expire in 5 minutes.\n\n"
+        f"Best regards,\nCampusFlow Security"
+    )
+    await email_service.send_email(user.email, email_subject, email_body)
+
+    return {
+        "message": f"New verification code sent to {mask_email(user.email)}",
+        "email": mask_email(user.email)
     }
 
 @router.post("/register/", status_code=status.HTTP_201_CREATED)
