@@ -31,6 +31,10 @@ export default function AIAssistant() {
   const { isAuthorized, isLoading } = useRoleGuard(['student', 'faculty', 'admin']);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const role = (user?.role || '').toLowerCase();
+  const isStudent = role === 'student' || (!role.includes('faculty') && !role.includes('teacher') && !role.includes('admin'));
+  const studentSem = Number(user?.sem || user?.semester || 1);
   
   const [mode, setMode] = useState<'genai'|'rag'>('genai');
   const [input, setInput] = useState('');
@@ -41,11 +45,12 @@ export default function AIAssistant() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 1. Fetch available subjects
+  // 1. Fetch available subjects (filtered to enrolled semester for students)
   const { data: subjects } = useQuery({
-    queryKey: ['subjects'],
+    queryKey: ['subjects', isStudent, studentSem],
     queryFn: async () => {
-      const res = await api.get('/academic/api/subjects/');
+      const url = isStudent ? `/academic/api/subjects/?semester=${studentSem}` : '/academic/api/subjects/';
+      const res = await api.get(url);
       return res.data;
     },
     enabled: Boolean(isAuthorized)
@@ -276,8 +281,13 @@ export default function AIAssistant() {
 
       {/* Knowledge Context Selector */}
       <div className="mb-4">
-        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">
-          Course Context
+        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <span>Course Context</span>
+          {isStudent && (
+            <span className="text-[#047857] font-bold normal-case text-[10px] bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+              Semester {studentSem}
+            </span>
+          )}
         </label>
         <select 
           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
@@ -285,11 +295,19 @@ export default function AIAssistant() {
           onChange={(e) => setSubjectId(e.target.value)}
         >
           <option value="1">General College Curriculum</option>
-          {subjects?.map((s: any) => (
-            <option key={s.id} value={String(s.id)}>
-              [Sem {s.sem?.sem_nmbr || s.sem_id}] {s.sub_name}
-            </option>
-          ))}
+          {(subjects || [])
+            .filter((s: any) => {
+              if (isStudent) {
+                const semNum = Number(s.sem?.sem_nmbr || s.sem_id);
+                return semNum === studentSem;
+              }
+              return true;
+            })
+            .map((s: any) => (
+              <option key={s.id} value={String(s.id)}>
+                [Sem {s.sem?.sem_nmbr || s.sem_id}] {s.sub_name}
+              </option>
+            ))}
         </select>
 
         {/* In RAG mode: display auto-chunking status */}

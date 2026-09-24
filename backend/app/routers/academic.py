@@ -6,7 +6,8 @@ from typing import Optional
 
 from app.database import get_db
 from app.models.academic import Sem, Subject
-from app.dependencies import get_current_user, require_role
+from app.models.user import User
+from app.dependencies import get_current_user, require_role, get_optional_current_user
 from app.schemas.academic import SubjectCreate, SubjectUpdate
 
 router = APIRouter(prefix="/academic/api", tags=["academic"])
@@ -25,10 +26,20 @@ async def get_semester(id: int, db: AsyncSession = Depends(get_db)):
     return sem
 
 @router.get("/subjects/")
-async def list_subjects(semester: Optional[int] = None, db: AsyncSession = Depends(get_db)):
+async def list_subjects(
+    semester: Optional[int] = None,
+    user: Optional[User] = Depends(get_optional_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     query = select(Subject).options(selectinload(Subject.sem), selectinload(Subject.faculty))
-    if semester is not None:
-        query = query.join(Sem).where(Sem.sem_nmbr == semester)
+    target_sem = semester
+    if user:
+        user_role = str(getattr(user.role, 'value', user.role)).lower()
+        if user_role == "student":
+            target_sem = user.sem or 1
+
+    if target_sem is not None:
+        query = query.join(Sem).where(Sem.sem_nmbr == target_sem)
     result = await db.execute(query)
     return result.scalars().all()
 
