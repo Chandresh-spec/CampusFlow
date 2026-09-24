@@ -2,6 +2,7 @@ import uuid
 import os
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.database import get_db
 from app.models.user import User
@@ -15,6 +16,10 @@ settings = get_settings()
 router = APIRouter(prefix="/api", tags=["profile"])
 
 def format_user_profile(user: User) -> dict:
+    avatar_url = user.avatar_url
+    if avatar_url and "avatars/" in avatar_url:
+        avatar_url = f"/api/profile/avatar/{user.id}/"
+
     return {
         "id": user.id,
         "username": user.username,
@@ -23,7 +28,7 @@ def format_user_profile(user: User) -> dict:
         "mobile_number": user.mobile_number,
         "usn": user.usn,
         "sem": user.sem,
-        "avatar_url": user.avatar_url,
+        "avatar_url": avatar_url,
         "bio": user.bio,
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "last_login": user.last_login.isoformat() if user.last_login else None,
@@ -53,6 +58,53 @@ async def update_profile(
     await db.commit()
     await db.refresh(user)
     return format_user_profile(user)
+
+@router.get("/profile/avatar/{user_id}/")
+@router.get("/profile/avatar/{user_id}")
+async def get_user_avatar(user_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(User).where(User.id == user_id))
+    target_user = res.scalar_one_or_none()
+    if not target_user or not target_user.avatar_url:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+        
+    s3_key = None
+    if "avatars/" in target_user.avatar_url:
+        s3_key = "avatars/" + target_user.avatar_url.split("avatars/")[-1].split("?")[0]
+        
+    if s3_key:
+        # 1. Local disk file response (super fast)
+        for base_dir in ["/app/data", "./backend/data", "./data", "."]:
+            local_path = os.path.join(base_dir, s3_key)
+            if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
+                from fastapi.responses import FileResponse
+                media_type = "image/png" if local_path.endswith(".png") else "image/jpeg"
+                return FileResponse(path=local_path, media_type=media_type)
+                
+        # 2. Download from S3 with server credentials (works on private buckets)
+        try:
+            img_bytes = await s3_service.download_file_bytes(s3_key)
+            if img_bytes and len(img_bytes) > 0:
+                import io
+                from fastapi.responses import StreamingResponse
+                media_type = "image/png" if s3_key.endswith(".png") else "image/jpeg"
+                return StreamingResponse(io.BytesIO(img_bytes), media_type=media_type)
+        except Exception as e:
+            print(f"[AvatarServe] S3 stream warning: {e}")
+            
+        # 3. Presigned URL redirect
+        try:
+            presigned_url = await s3_service.generate_presigned_download_url(s3_key, expires_in=86400)
+            if presigned_url:
+                from fastapi.responses import RedirectResponse
+                return RedirectResponse(url=presigned_url, status_code=307)
+        except Exception:
+            pass
+
+    if target_user.avatar_url.startswith("http"):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=target_user.avatar_url, status_code=307)
+        
+    raise HTTPException(status_code=404, detail="Avatar not found")
 
 @router.post("/profile/avatar/")
 async def upload_avatar(
@@ -89,12 +141,7 @@ async def upload_avatar(
     # Upload to AWS S3 (and local persistent cache)
     await s3_service.upload_file_bytes(s3_key, file_bytes, content_type=content_type)
 
-    if settings.S3_BUCKET_NAME and settings.AWS_ACCESS_KEY_ID:
-        avatar_url = f"https://{settings.S3_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
-    else:
-        avatar_url = f"/data/{s3_key}"
-
-    user.avatar_url = avatar_url
+    user.avatar_url = f"/api/profile/avatar/{user.id}/"
     await db.commit()
     await db.refresh(user)
 

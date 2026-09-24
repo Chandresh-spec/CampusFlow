@@ -25,6 +25,11 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [avatarErr, setAvatarErr] = useState(false);
+
+  useEffect(() => {
+    setAvatarErr(false);
+  }, [user?.avatar_url]);
 
   useEffect(() => {
     const handleOpenTour = () => setTourOpen(true);
@@ -120,8 +125,13 @@ export default function Navbar() {
                 className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 transition-all"
               >
                 <div className="w-8 h-8 rounded-full bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center shadow-xs overflow-hidden">
-                  {user?.avatar_url ? (
-                    <img src={user.avatar_url} alt={username} className="w-full h-full object-cover" />
+                  {user?.avatar_url && !avatarErr ? (
+                    <img 
+                      src={user.avatar_url} 
+                      alt={username} 
+                      onError={() => setAvatarErr(true)}
+                      className="w-full h-full object-cover" 
+                    />
                   ) : (
                     initial
                   )}

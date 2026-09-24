@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Sparkles, 
   BookOpen, 
@@ -196,10 +197,15 @@ export default function FeatureIntroModal({
   const features = isStudent ? studentFeatures : facultyFeatures;
   const totalSteps = features.length;
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
       <div className="bg-white border border-slate-200/90 rounded-3xl shadow-2xl w-full max-w-2xl relative overflow-hidden my-6">
         {/* Top Emerald Gradient Accent Bar */}
         <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-[#059669] via-emerald-500 to-teal-400" />
@@ -422,6 +428,7 @@ export default function FeatureIntroModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

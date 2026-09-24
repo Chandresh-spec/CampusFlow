@@ -46,6 +46,7 @@ export default function Profile() {
   });
 
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.avatar_url || '');
+  const [imgError, setImgError] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -58,6 +59,7 @@ export default function Profile() {
         bio: user.bio || '',
       });
       setAvatarUrl(user.avatar_url || '');
+      setImgError(false);
     }
   }, [user]);
 
@@ -93,6 +95,7 @@ export default function Profile() {
       });
       const newUrl = res.data.avatar_url;
       setAvatarUrl(newUrl);
+      setImgError(false);
       updateUser({ avatar_url: newUrl });
       toast.success('Profile photo uploaded to S3 successfully!');
     } catch (err: any) {
@@ -178,10 +181,11 @@ export default function Profile() {
               <div className="relative group self-start">
                 <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl bg-white p-1.5 shadow-xl ring-4 ring-white relative overflow-hidden">
                   <div className="w-full h-full rounded-2xl bg-gradient-to-tr from-emerald-100 to-teal-50 flex items-center justify-center overflow-hidden border border-slate-200">
-                    {avatarUrl ? (
+                    {avatarUrl && !imgError ? (
                       <img
                         src={avatarUrl}
                         alt={username}
+                        onError={() => setImgError(true)}
                         className="w-full h-full object-cover rounded-2xl"
                       />
                     ) : (
@@ -389,8 +393,13 @@ export default function Profile() {
               {/* ID Middle Body */}
               <div className="py-5 flex items-center gap-5 relative z-10">
                 <div className="w-20 h-20 rounded-2xl bg-white/20 p-1 shrink-0 shadow-inner">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt={username} className="w-full h-full object-cover rounded-xl" />
+                  {avatarUrl && !imgError ? (
+                    <img 
+                      src={avatarUrl} 
+                      alt={username} 
+                      onError={() => setImgError(true)} 
+                      className="w-full h-full object-cover rounded-xl" 
+                    />
                   ) : (
                     <div className="w-full h-full rounded-xl bg-white/30 flex items-center justify-center text-2xl font-black text-white">
                       {initial}
