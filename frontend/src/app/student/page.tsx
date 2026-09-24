@@ -26,6 +26,7 @@ import {
 import { formatFileSize, timeAgo } from '../../lib/utils';
 import { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
+import FeatureIntroModal from '../../components/FeatureIntroModal';
 
 export default function StudentDashboard() {
   const { isAuthorized, isLoading } = useRoleGuard(['student']);
@@ -33,6 +34,16 @@ export default function StudentDashboard() {
   const [selectedSem, setSelectedSem] = useState<number>(1);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
+  const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const isCompleted = localStorage.getItem('campusflow_tour_completed') === 'true';
+      if (!isCompleted) {
+        setTourOpen(true);
+      }
+    } catch (e) {}
+  }, []);
 
   useEffect(() => {
     if (user?.sem || user?.semester) {
@@ -145,7 +156,7 @@ export default function StudentDashboard() {
                 )}
                 <button
                   type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent('campusflow_open_tour'))}
+                  onClick={() => setTourOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#047857] border border-emerald-300 shadow-xs transition cursor-pointer"
                   title="View Platform Feature Guide"
                 >
@@ -407,6 +418,14 @@ export default function StudentDashboard() {
         <Sparkles size={16} className="text-emerald-100 animate-pulse group-hover:rotate-12 transition-transform" />
         <span>Ask NexusAI</span>
       </Link>
+
+      {/* ── Feature Introduction Tour Modal ─────────────────────────── */}
+      <FeatureIntroModal
+        isOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+        userRole="student"
+        userName={user?.username || 'Student'}
+      />
     </div>
   );
 }

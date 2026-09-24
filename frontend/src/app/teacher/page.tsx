@@ -19,10 +19,22 @@ import {
 import Link from 'next/link';
 import { timeAgo } from '../../lib/utils';
 import { Toaster } from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import FeatureIntroModal from '../../components/FeatureIntroModal';
 
 export default function TeacherDashboard() {
   const { isAuthorized, isLoading } = useRoleGuard(['faculty', 'teacher', 'admin']);
   const { user } = useAuth();
+  const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const isCompleted = localStorage.getItem('campusflow_tour_completed') === 'true';
+      if (!isCompleted) {
+        setTourOpen(true);
+      }
+    } catch (e) {}
+  }, []);
 
   const { data, isLoading: dataLoading } = useQuery({
     queryKey: ['facultyDashboard'],
@@ -68,7 +80,7 @@ export default function TeacherDashboard() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent('campusflow_open_tour'))}
+                  onClick={() => setTourOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#047857] border border-emerald-300 shadow-xs transition cursor-pointer"
                   title="View Platform Feature Guide"
                 >
@@ -245,6 +257,14 @@ export default function TeacherDashboard() {
         </div>
 
       </main>
+
+      {/* ── Feature Introduction Tour Modal ─────────────────────────── */}
+      <FeatureIntroModal
+        isOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+        userRole="faculty"
+        userName={username}
+      />
     </div>
   );
 }

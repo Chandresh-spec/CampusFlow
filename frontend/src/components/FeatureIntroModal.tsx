@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   Sparkles, 
   BookOpen, 
@@ -18,7 +18,10 @@ import {
   FileText,
   HelpCircle,
   LayoutGrid,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Wand2,
+  Smartphone,
+  Cpu
 } from 'lucide-react';
 
 interface FeatureIntroModalProps {
@@ -26,6 +29,8 @@ interface FeatureIntroModalProps {
   onClose: () => void;
   userRole?: string;
   userName?: string;
+  customActionText?: string;
+  onActionClick?: () => void;
 }
 
 export default function FeatureIntroModal({
@@ -33,79 +38,89 @@ export default function FeatureIntroModal({
   onClose,
   userRole = 'student',
   userName = 'Student',
+  customActionText,
+  onActionClick,
 }: FeatureIntroModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [viewMode, setViewMode] = useState<'slides' | 'grid'>('slides');
 
-  const isStudent = userRole.toLowerCase() === 'student';
+  const isStudent = (userRole || 'student').toLowerCase() === 'student';
 
-  // Mark tour as completed in localStorage on close
-  const handleDismiss = () => {
+  const handleFinish = () => {
     try {
       localStorage.setItem('campusflow_tour_completed', 'true');
       localStorage.removeItem('campusflow_show_welcome_tour');
     } catch (e) {}
-    onClose();
+    if (onActionClick) {
+      onActionClick();
+    } else {
+      onClose();
+    }
   };
 
   const studentFeatures = [
     {
-      id: 'materials',
-      icon: BookOpen,
-      tag: 'Study Materials',
-      title: 'Course Notes & Lecture Slides',
-      subtitle: 'Instant access to faculty study materials stored on AWS S3',
+      id: 'rag_ai',
+      icon: Bot,
+      tag: 'AI RAG Chatbot',
+      title: 'Syllabus RAG Chatbot (CampusFlow AI)',
+      subtitle: 'Ask questions directly to your textbooks & faculty lecture notes!',
+      badgeIcon: Cpu,
       description:
-        'All your syllabus notes, lecture presentations, past exam papers, and question banks are organized by semester and subject. View document sizes, format tags (PDF, PPT, DOC), and download files with one click.',
+        'This is our intelligent RAG (Retrieval-Augmented Generation) Chatbot. Unlike standard chatbots that make up answers, our RAG Chatbot indexes every single lecture note and syllabus PDF uploaded by your professors. When you ask a question about your subject, it retrieves the exact sections from your course notes and generates verified, curriculum-accurate answers with zero hallucinations! You can also switch to General AI mode anytime for coding help, problem solving, and practice quizzes.',
       tips: [
-        'Filter notes by semester tabs (Sem 1 to 8)',
-        'Use the top search bar to find any topic instantly',
-        'Official faculty verified badge on trusted materials'
+        'Notes RAG Mode: Answers strictly from faculty-uploaded course materials and textbooks',
+        'Subject Selection: Target your questions to your exact semester syllabus',
+        'General AI Mode: Explains code, math solutions, and complex concepts online',
+        'Saved History: Your past discussions and AI explanations are saved automatically'
       ],
       badgeColor: 'bg-emerald-50 text-[#059669] border-emerald-200',
     },
     {
-      id: 'classroom',
+      id: 'classroom_whatsapp',
       icon: MessageSquare,
-      tag: 'Real-Time Channels',
-      title: 'Semester Class Discussion Channels',
-      subtitle: 'Live WebSocket group chats and one-click video meetings',
+      tag: 'WhatsApp-Style Chat',
+      title: 'Classroom Channels (College "WhatsApp")',
+      subtitle: 'Real-time group discussion channels for every semester & subject',
+      badgeIcon: Smartphone,
       description:
-        'Connect directly with classmates and faculty in your enrolled semester. Clear doubts in real-time, collaborate on assignments, enhance questions using the AI polish button, or join scheduled Class Video Meets.',
+        'Think of this as your official college WhatsApp, but organized cleanly for your academic coursework! Every semester and subject has a dedicated live discussion group. Students and professors chat in real-time using fast WebSockets. Clear doubts with your teachers, polish questions professionally using the AI Wand, and start or join Class Video Meetings with 1 click.',
       tips: [
-        'Secure: Channels are strictly scoped to your semester',
-        'AI Polish: Click the magic wand icon to rephrase messages professionally',
-        'Video Meets: Launch Jitsi class meetings directly from the chat header'
+        'WhatsApp Experience: Instant messaging, sender badges, and live WebSocket connection dot',
+        'Semester Privacy: Channels are strictly restricted to students enrolled in that semester',
+        'AI Message Polish: Click the magic wand icon to automatically rephrase questions professionally',
+        '1-Click Class Video Meet: Launch Jitsi video meetings directly from the room header'
       ],
       badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     },
     {
-      id: 'ai',
-      icon: Bot,
-      tag: 'CampusFlow AI',
-      title: 'Dual-Mode Academic AI Assistant',
-      subtitle: 'Syllabus Notes RAG + Online General Intelligence',
+      id: 'materials_s3',
+      icon: BookOpen,
+      tag: 'Cloud Materials',
+      title: 'Course Notes & Lecture Slides on AWS S3',
+      subtitle: 'High-speed cloud downloads for syllabus notes, slides, and papers',
+      badgeIcon: BookOpen,
       description:
-        'Meet your 24/7 study companion. Switch between Notes RAG Mode (answers questions strictly from your professors’ uploaded syllabus notes) and General AI Mode (explains complex concepts, code, and practice quizzes).',
+        'All your course study materials are securely hosted on high-performance AWS S3 cloud storage. Browse notes organized by Semester 1 to 8, search by topic or professor, preview file types (PDF, PPT, DOC, IMG), and download files with one click.',
       tips: [
-        'Subject Notes RAG: Queries only verified course PDFs',
-        'General AI: Deep conceptual explanations & quiz generation',
-        'Saved History: Easily review past AI explanations anytime'
+        'Semester Filter: Quickly switch between Semester 1 through 8',
+        'Search Bar: Instant keyword search across all subjects and professors',
+        'Verified Materials: Official checkmarks indicate faculty-approved resources'
       ],
       badgeColor: 'bg-emerald-50 text-[#059669] border-emerald-200',
     },
     {
       id: 'notices',
       icon: Bell,
-      tag: 'Notice Board',
-      title: 'Official Circulars & Announcements',
-      subtitle: 'Never miss important college deadlines or notifications',
+      tag: 'Official Notices',
+      title: 'Campus Announcements & Exam Timetables',
+      subtitle: 'Verified broadcast notifications delivered directly to your feed',
+      badgeIcon: Bell,
       description:
-        'Stay up to date with official college broadcasts, semester exam timetables, fee notifications, and holiday circulars. Filter between College-Wide announcements and specific semester updates.',
+        'Never miss exam schedules, fee payment dates, holiday notices, or departmental announcements. Filter circulars by "My Semester" or view campus-wide updates.',
       tips: [
-        'Filter by "My Semester" for relevant departmental circulars',
-        'Mark announcements as read with the checkmark button',
-        'Instant notifications when new circulars are published'
+        'Filter by "My Semester" for announcements relevant only to your batch',
+        'Mark notices as read or review circular history anytime'
       ],
       badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     },
@@ -113,62 +128,64 @@ export default function FeatureIntroModal({
 
   const facultyFeatures = [
     {
-      id: 'upload',
+      id: 'rag_indexing',
       icon: UploadCloud,
-      tag: 'Media Manager',
-      title: 'Direct S3 Course Resource Publishing',
-      subtitle: 'Distribute syllabus notes, slides, and question papers',
+      tag: 'RAG Knowledge Base',
+      title: 'Course Material Uploads & RAG AI Indexing',
+      subtitle: 'Upload lecture PDFs directly to AWS S3 & auto-feed the RAG Chatbot',
+      badgeIcon: Cpu,
       description:
-        'Upload course materials directly to secure AWS S3 storage. Assign documents to specific semesters and subjects. Uploaded PDFs are automatically processed and indexed for students’ AI study queries.',
+        'Upload course materials directly to secure AWS S3 storage. Assign documents to specific semesters and subjects. Uploaded PDFs are automatically chunked, embedded, and indexed into the RAG vector store so the CampusFlow AI Chatbot can accurately answer your students’ questions based on your exact syllabus!',
       tips: [
+        'Auto RAG Indexing: PDFs are immediately searchable by student AI queries',
         'Supports PDF, PPT, Word DOC, and Diagram formats',
-        'Direct S3 upload with automatic server fallback',
-        'Real-time student download and view tracking'
+        'Direct S3 upload with automatic server fallback and view tracking'
       ],
       badgeColor: 'bg-emerald-50 text-[#059669] border-emerald-200',
     },
     {
-      id: 'classroom',
+      id: 'faculty_whatsapp',
       icon: MessageSquare,
-      tag: 'Office Hours',
-      title: 'Class Channels & Instant Mentorship',
-      subtitle: 'Engage with students across all semester streams',
+      tag: 'WhatsApp-Style Channels',
+      title: 'Class Channels & Instant Doubt Mentorship',
+      subtitle: 'WhatsApp-like live discussion channels with verified faculty badge',
+      badgeIcon: Smartphone,
       description:
-        'Join any semester discussion channel to answer doubts, share class reminders, and maintain academic dialogue. Launch audio/video sessions on demand using the built-in Class Video Meet.',
+        'Join any semester discussion channel to answer student doubts, post quick reminders, and hold academic discussions in real-time. Answers you send display a verified Faculty badge. Launch video office hours with 1 click.',
       tips: [
         'Filter channels by Semester 1 through 8',
-        'Faculty badge highlights your answers for students',
+        'Verified Professor Badge highlights your messages for students',
         'One-click Jitsi video conference for office hours'
       ],
       badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     },
     {
-      id: 'broadcast',
+      id: 'faculty_notices',
       icon: Bell,
       tag: 'Broadcasts',
       title: 'Publish College & Department Notices',
       subtitle: 'Official announcements delivered instantly to students',
+      badgeIcon: Bell,
       description:
         'Publish official circulars, exam schedules, and submission deadlines. Target notifications to an individual semester or broadcast college-wide to all enrolled students.',
       tips: [
         'Target specific semester or broadcast to all students',
-        'Edit or delete announcements anytime',
-        'High visibility banner for urgent notices'
+        'Edit or delete announcements anytime'
       ],
       badgeColor: 'bg-emerald-50 text-[#059669] border-emerald-200',
     },
     {
-      id: 'analytics',
+      id: 'faculty_analytics',
       icon: Layers,
-      tag: 'Faculty Dashboard',
+      tag: 'Analytics',
       title: 'Teaching Analytics & Resource Insights',
       subtitle: 'Track engagement across your published course notes',
+      badgeIcon: Layers,
       description:
         'Monitor active students, views today, and total downloads across your study materials. Quick navigation shortcuts help you manage your course content with zero friction.',
       tips: [
         'Real-time view counter on all course materials',
-        'Manage and delete old resources in "My Uploads"',
-        'Quick access to student classrooms from your navbar'
+        'Manage and delete old resources in "My Uploads"'
       ],
       badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
     },
@@ -198,12 +215,12 @@ export default function FeatureIntroModal({
               Welcome, {userName}! 👋
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Explore the key features designed to power your academic journey.
+              Here is how our <strong>Syllabus RAG Chatbot</strong>, <strong>WhatsApp-like Classrooms</strong>, and study tools work.
             </p>
           </div>
 
           <button
-            onClick={handleDismiss}
+            onClick={handleFinish}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition shrink-0"
             title="Skip Tour"
           >
@@ -211,7 +228,7 @@ export default function FeatureIntroModal({
           </button>
         </div>
 
-        {/* ── View Mode Switcher (Slide by Slide vs All at a Glance) ── */}
+        {/* ── View Mode Switcher ───────────────────────────────────── */}
         <div className="px-6 sm:px-7 pt-4 flex items-center justify-between">
           <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
             <button
@@ -240,7 +257,7 @@ export default function FeatureIntroModal({
 
           {viewMode === 'slides' && (
             <span className="text-xs font-bold text-slate-400">
-              Step {currentStep + 1} of {totalSteps}
+              Feature {currentStep + 1} of {totalSteps}
             </span>
           )}
         </div>
@@ -251,36 +268,38 @@ export default function FeatureIntroModal({
             {(() => {
               const feat = features[currentStep];
               const Icon = feat.icon;
+              const BadgeIcon = feat.badgeIcon || Icon;
 
               return (
-                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-200">
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
                   {/* Feature Icon & Title */}
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-[#059669] shrink-0 shadow-xs">
                       <Icon size={28} />
                     </div>
                     <div>
-                      <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${feat.badgeColor} mb-1`}>
-                        {feat.tag}
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${feat.badgeColor} mb-1`}>
+                        <BadgeIcon size={12} />
+                        <span>{feat.tag}</span>
                       </span>
                       <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-snug">
                         {feat.title}
                       </h3>
-                      <p className="text-xs font-medium text-emerald-700 mt-0.5">
+                      <p className="text-xs font-semibold text-emerald-700 mt-0.5">
                         {feat.subtitle}
                       </p>
                     </div>
                   </div>
 
                   {/* Main Description */}
-                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
                     {feat.description}
                   </p>
 
                   {/* Quick Tips List */}
                   <div className="space-y-2">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      💡 Pro Tips:
+                      💡 How to use this feature:
                     </p>
                     <div className="space-y-1.5">
                       {feat.tips.map((tip, idx) => (
@@ -315,7 +334,7 @@ export default function FeatureIntroModal({
           /* ── Modal Body: Grid Mode (All Features) ───────────────── */
           <div className="p-6 sm:p-7 max-h-[60vh] overflow-y-auto space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {features.map((feat, i) => {
+              {features.map((feat) => {
                 const Icon = feat.icon;
                 return (
                   <div 
@@ -335,7 +354,7 @@ export default function FeatureIntroModal({
                         </h4>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">
+                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
                       {feat.description}
                     </p>
                   </div>
@@ -362,7 +381,7 @@ export default function FeatureIntroModal({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleDismiss}
+                  onClick={handleFinish}
                   className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition"
                 >
                   Skip Tour
@@ -380,10 +399,10 @@ export default function FeatureIntroModal({
                 ) : (
                   <button
                     type="button"
-                    onClick={handleDismiss}
+                    onClick={handleFinish}
                     className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition"
                   >
-                    <span>Get Started! 🚀</span>
+                    <span>{customActionText || 'Get Started! 🚀'}</span>
                   </button>
                 )}
               </div>
@@ -392,10 +411,10 @@ export default function FeatureIntroModal({
             <div className="w-full flex justify-end gap-3">
               <button
                 type="button"
-                onClick={handleDismiss}
+                onClick={handleFinish}
                 className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white text-xs font-bold shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition text-center"
               >
-                Got It! Take Me to Dashboard 🚀
+                {customActionText || 'Got It! Take Me to Dashboard 🚀'}
               </button>
             </div>
           )}
