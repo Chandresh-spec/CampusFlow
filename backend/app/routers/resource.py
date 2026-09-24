@@ -17,7 +17,7 @@ from app.schemas.resource import (
 )
 from app.services import s3_service, sqs_service
 
-router = APIRouter(prefix="/resource/api", tags=["resource"])
+router = APIRouter(tags=["resource"])
 
 @router.post("/upload-direct")
 @router.post("/upload-direct/")
@@ -322,10 +322,101 @@ async def get_student_resource(id: int, user = Depends(require_role("student")),
             pass
     return resource
 
+@router.get("/student/resources/{id}/file/")
+@router.get("/student/resources/{id}/file")
+@router.get("/resources/{id}/file/")
+@router.get("/resources/{id}/file")
+async def get_resource_file(id: int, db: AsyncSession = Depends(get_db)):
+    res_query = select(Resource).where(Resource.id == id)
+    result = await db.execute(res_query)
+    resource = result.scalar_one_or_none()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+        
+    resource.view_count = (resource.view_count or 0) + 1
+    await db.commit()
+    
+    # Determine safe filename and media type
+    ext = ".pdf"
+    ft_str = resource.file_type.value if hasattr(resource.file_type, "value") else str(resource.file_type or "PDF")
+    if "DOC" in ft_str:
+        ext = ".docx"
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    elif "PPT" in ft_str:
+        ext = ".pptx"
+        media_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    elif "IMG" in ft_str or "PNG" in ft_str:
+        ext = ".png"
+        media_type = "image/png"
+    elif "JPG" in ft_str or "JPEG" in ft_str:
+        ext = ".jpg"
+        media_type = "image/jpeg"
+    else:
+        ext = ".pdf"
+        media_type = "application/pdf"
+        
+    safe_name = "".join([c if c.isalnum() or c in " ._-" else "_" for c in resource.title]).strip()
+    if not safe_name.lower().endswith(ext):
+        safe_name = f"{safe_name}{ext}"
+        
+    # 1. Check local disk cache first (instant response)
+    import os
+    for base_dir in ["/app/data", "./backend/data", "./data"]:
+        if resource.s3_key:
+            local_target = os.path.join(base_dir, resource.s3_key)
+            if os.path.exists(local_target) and os.path.getsize(local_target) > 0:
+                from fastapi.responses import FileResponse
+                return FileResponse(
+                    path=local_target,
+                    filename=safe_name,
+                    media_type=media_type,
+                    headers={"Content-Disposition": f'inline; filename="{safe_name}"'}
+                )
+                
+    # 2. Stream directly from S3 via boto3 (no S3 CORS issues, no client auth expiration)
+    if resource.s3_key:
+        try:
+            pdf_bytes = await s3_service.download_file_bytes(resource.s3_key)
+            if pdf_bytes and len(pdf_bytes) > 0:
+                import io
+                from fastapi.responses import StreamingResponse
+                return StreamingResponse(
+                    io.BytesIO(pdf_bytes),
+                    media_type=media_type,
+                    headers={
+                        "Content-Disposition": f'inline; filename="{safe_name}"',
+                        "Content-Length": str(len(pdf_bytes))
+                    }
+                )
+        except Exception as e:
+            print(f"[FileServe] S3 direct stream warning for {resource.s3_key}: {e}")
+            
+    # 3. Fallback to presigned S3 URL or reference URL redirect
+    presigned_url = None
+    if resource.s3_key:
+        try:
+            presigned_url = await s3_service.generate_presigned_download_url(resource.s3_key, expires_in=86400)
+        except Exception:
+            pass
+    if not presigned_url and resource.s3_url:
+        presigned_url = resource.s3_url
+    if not presigned_url and resource.reference_url:
+        presigned_url = resource.reference_url
+        
+    if presigned_url:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=presigned_url, status_code=307)
+        
+    raise HTTPException(status_code=404, detail="File content not found on server or storage")
+
 @router.post("/student/resources/{id}/download/")
+@router.post("/student/resources/{id}/download")
 @router.get("/student/resources/{id}/download/")
+@router.get("/student/resources/{id}/download")
 @router.post("/resources/{id}/download/")
+@router.post("/resources/{id}/download")
 @router.get("/resources/{id}/download/")
+@router.get("/resources/{id}/download")
 async def download_student_resource(id: int, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res_query = select(Resource).where(Resource.id == id)
     result = await db.execute(res_query)
@@ -354,10 +445,17 @@ async def download_student_resource(id: int, user = Depends(get_current_user), d
         url = resource.s3_url
     if not url and resource.reference_url:
         url = resource.reference_url
-    if not url and resource.s3_key:
-        url = f"/data/{resource.s3_key}"
+        
+    backend_file_url = f"/api/student/resources/{resource.id}/file/"
+    if not url:
+        url = backend_file_url
 
-    return {"message": "Downloaded", "url": url, "view_count": resource.view_count}
+    return {
+        "message": "Downloaded", 
+        "url": url, 
+        "file_url": backend_file_url,
+        "view_count": resource.view_count
+    }
 
 @router.get("/resources/")
 async def list_resources(

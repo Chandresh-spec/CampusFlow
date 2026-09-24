@@ -94,28 +94,22 @@ export default function StudentDashboard() {
   });
 
   const handleDownload = async (resItem: any) => {
-    // Permanent direct URL (not a time-limited presigned URL)
-    if (resItem.s3_url && resItem.s3_url.startsWith('http') && !resItem.s3_url.includes('Expires=')) {
-      window.open(resItem.s3_url, '_blank');
-      return;
-    }
     if (resItem.reference_url && resItem.reference_url.startsWith('http') && !resItem.reference_url.includes('Expires=')) {
       window.open(resItem.reference_url, '_blank');
       return;
     }
 
+    const toastId = toast.loading('Opening secure document...');
     try {
-      const toastId = toast.loading('Generating secure download link...');
-      const res = await api.post(`/api/student/resources/${resItem.id}/download/`);
+      const res = await api.post(`/api/student/resources/${resItem.id}/download/`).catch(async () => {
+        return await api.post(`/resource/api/student/resources/${resItem.id}/download/`);
+      });
       toast.dismiss(toastId);
-      if (res.data?.url) {
-        window.open(res.data.url, '_blank');
-      } else {
-        toast.error('File link unavailable');
-      }
+      const targetUrl = res.data?.url || res.data?.file_url || `/api/student/resources/${resItem.id}/file/`;
+      window.open(targetUrl, '_blank');
     } catch (err) {
-      toast.dismiss();
-      toast.error('Failed to open document');
+      toast.dismiss(toastId);
+      window.open(`/api/student/resources/${resItem.id}/file/`, '_blank');
     }
   };
 

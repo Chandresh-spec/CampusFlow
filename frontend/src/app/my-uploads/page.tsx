@@ -115,53 +115,51 @@ export default function MyUploads() {
     setUploading(true);
     let uploadedSuccessfully = false;
 
-    // 1. Attempt client-side direct S3 PUT upload
+    // 1. Direct multi-part upload via backend API (Reliable: uploads to S3 + local cache, NO browser CORS issues)
     try {
-      const presignRes = await api.post('/resource/api/s3/presign-upload', {
-        filename: file.name,
-        content_type: file.type || 'application/octet-stream'
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', uploadData.title);
+      if (uploadData.description) formData.append('description', uploadData.description);
+      formData.append('subject_id', String(uploadData.subject_id));
+      formData.append('file_type', uploadData.file_type || 'PDF');
+
+      await api.post('/resource/api/upload-direct/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const { upload_url, s3_key } = presignRes.data;
-
-      const uploadResp = await fetch(upload_url, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream'
-        }
-      });
-
-      if (uploadResp.ok) {
-        await api.post('/resource/api/resources/', {
-          title: uploadData.title,
-          description: uploadData.description,
-          subject_id: Number(uploadData.subject_id),
-          file_type: uploadData.file_type || 'PDF',
-          file_size: file.size,
-          s3_key: s3_key
-        });
-        uploadedSuccessfully = true;
-      }
-    } catch (s3Err) {
-      console.warn("Direct S3 PUT upload blocked (likely S3 bucket CORS), using backend upload fallback...", s3Err);
-    }
-
-    // 2. Fallback: upload directly via backend API if S3 CORS blocked direct PUT
-    if (!uploadedSuccessfully) {
+      uploadedSuccessfully = true;
+    } catch (backendErr: any) {
+      console.warn('Direct backend upload failed, attempting presigned S3 upload...', backendErr);
+      
+      // 2. Fallback: Attempt client-side direct S3 PUT upload
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', uploadData.title);
-        if (uploadData.description) formData.append('description', uploadData.description);
-        formData.append('subject_id', String(uploadData.subject_id));
-        formData.append('file_type', uploadData.file_type || 'PDF');
-
-        await api.post('/resource/api/upload-direct/', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+        const presignRes = await api.post('/resource/api/s3/presign-upload', {
+          filename: file.name,
+          content_type: file.type || 'application/octet-stream'
         });
-        uploadedSuccessfully = true;
-      } catch (backendErr: any) {
-        console.error('Backend upload fallback failed:', backendErr);
+        const { upload_url, s3_key } = presignRes.data;
+
+        const uploadResp = await fetch(upload_url, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream'
+          }
+        });
+
+        if (uploadResp.ok) {
+          await api.post('/resource/api/resources/', {
+            title: uploadData.title,
+            description: uploadData.description,
+            subject_id: Number(uploadData.subject_id),
+            file_type: uploadData.file_type || 'PDF',
+            file_size: file.size,
+            s3_key: s3_key
+          });
+          uploadedSuccessfully = true;
+        }
+      } catch (s3Err: any) {
+        console.error('All upload methods failed:', s3Err);
         const errMsg = backendErr?.response?.data?.detail || backendErr?.message || 'Upload failed';
         toast.error(errMsg);
         setUploading(false);
@@ -334,22 +332,21 @@ export default function MyUploads() {
                             <button 
                               type="button"
                               onClick={async () => {
-                                if (res.s3_url && !res.s3_url.includes('Expires=')) {
-                                  window.open(res.s3_url, '_blank');
+                                if (res.reference_url && res.reference_url.startsWith('http') && !res.reference_url.includes('Expires=')) {
+                                  window.open(res.reference_url, '_blank');
                                   return;
                                 }
+                                const toastId = toast.loading('Opening document...');
                                 try {
-                                  const toastId = toast.loading('Opening document...');
-                                  const dlRes = await api.post(`/api/student/resources/${res.id}/download/`);
+                                  const dlRes = await api.post(`/api/student/resources/${res.id}/download/`).catch(async () => {
+                                    return await api.post(`/resource/api/student/resources/${res.id}/download/`);
+                                  });
                                   toast.dismiss(toastId);
-                                  if (dlRes.data?.url) {
-                                    window.open(dlRes.data.url, '_blank');
-                                  } else {
-                                    toast.error('Download link unavailable');
-                                  }
+                                  const targetUrl = dlRes.data?.url || dlRes.data?.file_url || `/api/student/resources/${res.id}/file/`;
+                                  window.open(targetUrl, '_blank');
                                 } catch (e) {
-                                  toast.dismiss();
-                                  toast.error('Failed to open file');
+                                  toast.dismiss(toastId);
+                                  window.open(`/api/student/resources/${res.id}/file/`, '_blank');
                                 }
                               }}
                               className="p-2 rounded-xl text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
