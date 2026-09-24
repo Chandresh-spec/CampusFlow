@@ -67,8 +67,19 @@ async def init_db():
     import app.models.notice  # noqa: F401
     import app.models.chat  # noqa: F401
 
+    from sqlalchemy import text
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Safe auto-migration for added columns
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500)"))
+        except Exception:
+            pass
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN bio VARCHAR(500)"))
+        except Exception:
+            pass
 
     async with async_session_factory() as session:
         try:

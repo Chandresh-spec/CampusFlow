@@ -60,6 +60,13 @@ app.include_router(notice.router)
 app.include_router(chat.router)
 app.include_router(chat.chat_group_router)
 
+import os
+from fastapi.staticfiles import StaticFiles
+
+data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+os.makedirs(data_dir, exist_ok=True)
+app.mount("/data", StaticFiles(directory=data_dir), name="data")
+
 @app.get("/health", tags=["system"])
 async def health_check():
     return {"status": "ok"}

@@ -40,6 +40,8 @@ def format_user_dict(u: User) -> dict:
         "mobile_number": u.mobile_number,
         "usn": u.usn,
         "sem": u.sem,
+        "avatar_url": getattr(u, "avatar_url", None),
+        "bio": getattr(u, "bio", None),
     }
 
 @router.post("/login/", response_model=Dict[str, Any])

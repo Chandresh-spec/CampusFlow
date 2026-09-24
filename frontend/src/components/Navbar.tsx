@@ -119,8 +119,12 @@ export default function Navbar() {
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 transition-all"
               >
-                <div className="w-8 h-8 rounded-full bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center shadow-xs">
-                  {initial}
+                <div className="w-8 h-8 rounded-full bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center shadow-xs overflow-hidden">
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt={username} className="w-full h-full object-cover" />
+                  ) : (
+                    initial
+                  )}
                 </div>
                 <div className="text-left hidden lg:block">
                   <p className="text-xs font-bold text-slate-800 leading-tight">{username}</p>

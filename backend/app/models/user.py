@@ -27,6 +27,8 @@ class User(Base):
     mobile_number = Column(String(15), nullable=True)
     usn = Column(String(20), unique=True, nullable=True, index=True)
     sem = Column(Integer, nullable=True)
+    avatar_url = Column(String(500), nullable=True)
+    bio = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
