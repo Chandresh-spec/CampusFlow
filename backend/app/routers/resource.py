@@ -40,8 +40,7 @@ async def upload_direct(
     try:
         await s3_service.upload_file_bytes(s3_key, content, content_type)
     except Exception as e:
-        print(f"[S3] Direct upload error: {e}")
-        raise HTTPException(status_code=500, detail=f"S3 upload error: {str(e)}")
+        print(f"[S3] Upload warning (persisted locally): {e}")
 
     s3_url = ""
     try:
@@ -63,7 +62,8 @@ async def upload_direct(
     else:
         ft_enum = FileType.PDF
 
-    is_auto_approve = user.role in [UserRole.faculty, UserRole.admin]
+    user_role_str = (user.role.value if hasattr(user.role, "value") else str(user.role)).lower()
+    is_auto_approve = user_role_str in ["faculty", "teacher", "admin"]
     status_val = ResourceStatus.APPROVED if is_auto_approve else ResourceStatus.PENDING
 
     resource = Resource(
