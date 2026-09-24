@@ -37,7 +37,7 @@ async def generate_presigned_upload_url(s3_key: str, content_type: str, expires_
             return ""
     return await loop.run_in_executor(None, _generate)
 
-async def generate_presigned_download_url(s3_key: str, expires_in: int = 3600) -> str:
+async def generate_presigned_download_url(s3_key: str, expires_in: int = 86400) -> str:
     if not _is_s3_configured():
         return ""
     loop = asyncio.get_event_loop()

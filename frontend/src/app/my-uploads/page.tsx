@@ -331,17 +331,32 @@ export default function MyUploads() {
 
                         <td className="p-4 sm:p-5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
-                            {res.s3_url && (
-                              <a 
-                                href={res.s3_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="p-2 rounded-xl text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all"
-                                title="Open / Download from S3"
-                              >
-                                <ExternalLink size={17} />
-                              </a>
-                            )}
+                            <button 
+                              type="button"
+                              onClick={async () => {
+                                if (res.s3_url && !res.s3_url.includes('Expires=')) {
+                                  window.open(res.s3_url, '_blank');
+                                  return;
+                                }
+                                try {
+                                  const toastId = toast.loading('Opening document...');
+                                  const dlRes = await api.post(`/api/student/resources/${res.id}/download/`);
+                                  toast.dismiss(toastId);
+                                  if (dlRes.data?.url) {
+                                    window.open(dlRes.data.url, '_blank');
+                                  } else {
+                                    toast.error('Download link unavailable');
+                                  }
+                                } catch (e) {
+                                  toast.dismiss();
+                                  toast.error('Failed to open file');
+                                }
+                              }}
+                              className="p-2 rounded-xl text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
+                              title="Open / Download from S3"
+                            >
+                              <ExternalLink size={17} />
+                            </button>
                             <button 
                               onClick={() => { 
                                 if (confirm('Are you sure you want to delete this resource?')) {

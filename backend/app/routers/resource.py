@@ -323,7 +323,10 @@ async def get_student_resource(id: int, user = Depends(require_role("student")),
     return resource
 
 @router.post("/student/resources/{id}/download/")
-async def download_student_resource(id: int, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
+@router.get("/student/resources/{id}/download/")
+@router.post("/resources/{id}/download/")
+@router.get("/resources/{id}/download/")
+async def download_student_resource(id: int, user = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res_query = select(Resource).where(Resource.id == id)
     result = await db.execute(res_query)
     resource = result.scalar_one_or_none()
@@ -343,11 +346,16 @@ async def download_student_resource(id: int, user = Depends(require_role("studen
     url = ""
     if resource.s3_key:
         try:
-            url = await s3_service.generate_presigned_download_url(resource.s3_key)
+            # Generate a fresh 24-hour presigned download URL
+            url = await s3_service.generate_presigned_download_url(resource.s3_key, expires_in=86400)
         except Exception:
-            url = resource.s3_url or ""
-    elif resource.reference_url:
+            pass
+    if not url and resource.s3_url and "Expires=" not in resource.s3_url:
+        url = resource.s3_url
+    if not url and resource.reference_url:
         url = resource.reference_url
+    if not url and resource.s3_key:
+        url = f"/data/{resource.s3_key}"
 
     return {"message": "Downloaded", "url": url, "view_count": resource.view_count}
 
