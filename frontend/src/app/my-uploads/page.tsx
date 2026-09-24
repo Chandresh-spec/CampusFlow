@@ -1,10 +1,26 @@
 'use client';
 import { useState, useRef } from 'react';
 import { useRoleGuard } from '../../hooks/useRoleGuard';
-import Sidebar from '../../components/Sidebar';
+import Navbar from '../../components/Navbar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
-import { Edit2, Trash2, Plus, X, ExternalLink, FileText, Loader2 } from 'lucide-react';
+import { 
+  FileUp, 
+  Trash2, 
+  Plus, 
+  X, 
+  ExternalLink, 
+  FileText, 
+  Loader2, 
+  Layers, 
+  Calendar, 
+  Eye, 
+  CheckCircle2, 
+  Clock, 
+  XCircle,
+  FileCheck,
+  BookOpen
+} from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { formatFileSize, timeAgo } from '../../lib/utils';
 
@@ -165,106 +181,177 @@ export default function MyUploads() {
     setUploading(false);
   };
 
-  if (isLoading || !isAuthorized) return null;
+  if (isLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-slate-900">
-      <Sidebar />
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-24 font-sans relative">
+      <Navbar />
       <Toaster position="top-right" />
-      <main className="flex-1 overflow-y-auto p-8">
-        <div className="flex justify-between items-center mb-8">
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* ── Page Header ─────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
+          <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#059669] via-emerald-500 to-teal-400" />
           <div>
-            <h1 className="text-3xl font-bold">My Uploads</h1>
-            <p className="text-sm text-slate-400 mt-1">Manage and share course materials with students</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-[#059669] text-xs font-bold uppercase tracking-wider mb-2">
+              <BookOpen size={13} />
+              Faculty Portal
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              My Uploaded Materials
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Manage syllabus notes, lecture slides, and question banks stored securely on AWS S3.
+            </p>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition shadow-lg shadow-purple-500/20">
-            <Plus size={20} /> Upload New Media
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center gap-2.5 bg-[#059669] hover:bg-[#047857] text-white px-5 py-3 rounded-2xl font-bold shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all duration-200 w-full sm:w-auto"
+          >
+            <Plus size={19} />
+            <span>Upload New Media</span>
           </button>
         </div>
 
-        <div className="glass rounded-2xl overflow-hidden">
+        {/* ── Resources Table Card ─────────────────────────────────── */}
+        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-800/80 border-b border-slate-700">
-                <tr>
-                  <th className="p-4 font-medium text-slate-300">Title</th>
-                  <th className="p-4 font-medium text-slate-300">Subject</th>
-                  <th className="p-4 font-medium text-slate-300">Semester</th>
-                  <th className="p-4 font-medium text-slate-300">Format</th>
-                  <th className="p-4 font-medium text-slate-300">Status</th>
-                  <th className="p-4 font-medium text-slate-300">Views</th>
-                  <th className="p-4 font-medium text-slate-300">Date</th>
-                  <th className="p-4 font-medium text-slate-300">Actions</th>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="p-4 sm:p-5">Resource Title</th>
+                  <th className="p-4 sm:p-5">Subject</th>
+                  <th className="p-4 sm:p-5">Semester</th>
+                  <th className="p-4 sm:p-5">Format</th>
+                  <th className="p-4 sm:p-5">Status</th>
+                  <th className="p-4 sm:p-5">Views</th>
+                  <th className="p-4 sm:p-5">Date</th>
+                  <th className="p-4 sm:p-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/50">
+              <tbody className="divide-y divide-slate-100">
                 {resourcesLoading ? (
-                  <tr><td colSpan={8} className="p-8 text-center text-slate-400">Loading resources...</td></tr>
+                  <tr>
+                    <td colSpan={8} className="p-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm font-medium">Loading uploaded materials...</span>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (!resources || resources.length === 0) ? (
-                  <tr><td colSpan={8} className="p-8 text-center text-slate-400">No uploads found. Click &quot;Upload New Media&quot; to add course materials.</td></tr>
+                  <tr>
+                    <td colSpan={8} className="p-12 text-center text-slate-500">
+                      <div className="max-w-sm mx-auto space-y-3">
+                        <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                          <FileUp size={28} />
+                        </div>
+                        <p className="text-base font-bold text-slate-800">No uploads found</p>
+                        <p className="text-xs text-slate-400">
+                          Click &quot;Upload New Media&quot; above to publish your first lecture note, presentation, or question paper.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
                   resources.map((res: any) => {
                     const statusStr = (res.status || 'PENDING').toUpperCase();
                     const semNmbr = res.subject?.sem?.sem_nmbr || res.subject?.sem_id || '-';
                     return (
-                      <tr key={res.id} className="hover:bg-white/5 transition">
-                        <td className="p-4">
+                      <tr key={res.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="p-4 sm:p-5">
                           <div className="flex items-center gap-3">
-                            <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400">
-                              <FileText size={18} />
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#059669] flex items-center justify-center shrink-0 border border-emerald-100">
+                              <FileText size={20} />
                             </div>
-                            <div>
-                              <p className="font-medium text-white">{res.title}</p>
-                              {res.file_size ? <p className="text-xs text-slate-400">{formatFileSize(res.file_size)}</p> : null}
+                            <div className="min-w-0 max-w-xs">
+                              <p className="font-bold text-slate-900 text-sm truncate">{res.title}</p>
+                              {res.file_size ? (
+                                <p className="text-xs text-slate-400 mt-0.5">{formatFileSize(res.file_size)}</p>
+                              ) : null}
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-slate-300 font-medium">
-                          {res.subject?.sub_name || res.subject_name || 'General'}
-                          {res.subject?.sub_code ? <span className="text-xs text-slate-400 ml-1.5">({res.subject.sub_code})</span> : null}
+
+                        <td className="p-4 sm:p-5 text-slate-700 font-semibold text-sm">
+                          <div>
+                            <span>{res.subject?.sub_name || res.subject_name || 'General'}</span>
+                            {res.subject?.sub_code && (
+                              <span className="text-xs font-normal text-slate-400 ml-1.5">
+                                ({res.subject.sub_code})
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="p-4 text-slate-300">
-                          <span className="px-2.5 py-1 rounded bg-slate-800 text-xs font-medium border border-slate-700">
+
+                        <td className="p-4 sm:p-5">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
                             Sem {semNmbr}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/20 text-blue-400 uppercase">
+
+                        <td className="p-4 sm:p-5">
+                          <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wider">
                             {res.file_type || 'PDF'}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+
+                        <td className="p-4 sm:p-5">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                             statusStr === 'APPROVED' 
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                               : statusStr === 'REJECTED'
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
                           }`}>
+                            {statusStr === 'APPROVED' && <CheckCircle2 size={12} className="text-emerald-600" />}
+                            {statusStr === 'REJECTED' && <XCircle size={12} className="text-rose-600" />}
+                            {statusStr === 'PENDING' && <Clock size={12} className="text-amber-600" />}
                             {statusStr === 'APPROVED' ? 'Approved' : statusStr === 'REJECTED' ? 'Rejected' : 'Pending'}
                           </span>
                         </td>
-                        <td className="p-4 text-slate-300">{res.view_count ?? res.views ?? 0}</td>
-                        <td className="p-4 text-slate-300 text-sm">{timeAgo(res.created_at)}</td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
+
+                        <td className="p-4 sm:p-5 text-slate-600 text-sm font-medium">
+                          <div className="flex items-center gap-1">
+                            <Eye size={15} className="text-slate-400" />
+                            <span>{res.view_count ?? res.views ?? 0}</span>
+                          </div>
+                        </td>
+
+                        <td className="p-4 sm:p-5 text-slate-500 text-xs font-medium whitespace-nowrap">
+                          {timeAgo(res.created_at)}
+                        </td>
+
+                        <td className="p-4 sm:p-5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
                             {res.s3_url && (
                               <a 
                                 href={res.s3_url} 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
-                                className="p-2 hover:bg-slate-700 rounded-lg transition text-emerald-400 hover:text-emerald-300"
-                                title="Open / Download"
+                                className="p-2 rounded-xl text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all"
+                                title="Open / Download from S3"
                               >
-                                <ExternalLink size={18} />
+                                <ExternalLink size={17} />
                               </a>
                             )}
                             <button 
-                              onClick={() => { if (confirm('Are you sure you want to delete this resource?')) deleteMutation.mutate(res.id); }} 
-                              className="p-2 hover:bg-slate-700 rounded-lg transition text-red-400 hover:text-red-300"
-                              title="Delete"
+                              onClick={() => { 
+                                if (confirm('Are you sure you want to delete this resource?')) {
+                                  deleteMutation.mutate(res.id); 
+                                }
+                              }} 
+                              className="p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all"
+                              title="Delete Resource"
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={17} />
                             </button>
                           </div>
                         </td>
@@ -277,33 +364,53 @@ export default function MyUploads() {
           </div>
         </div>
 
+        {/* ── Modern White + Green Upload Modal ───────────────────── */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass w-full max-w-lg p-6 rounded-2xl relative border border-slate-700">
-              <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition">
-                <X size={24} />
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white w-full max-w-lg p-6 sm:p-8 rounded-3xl relative border border-slate-200 shadow-2xl animate-in fade-in zoom-in-95 duration-200 my-8">
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-xl transition"
+              >
+                <X size={20} />
               </button>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <FileText className="text-purple-400" /> Upload Resource
-              </h2>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#059669] flex items-center justify-center border border-emerald-100">
+                  <FileUp size={22} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">
+                    Upload Course Resource
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Directly uploads to AWS S3 & indexes for AI Chat
+                  </p>
+                </div>
+              </div>
+
               <form onSubmit={handleUpload} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-200">Title *</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Resource Title *
+                  </label>
                   <input 
                     required 
                     type="text" 
-                    placeholder="e.g. Unit 1 Lecture Notes, Data Structures Question Bank"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                    placeholder="e.g. Unit 2 Tree Algorithms & AVL Balancing Notes"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
                     value={uploadData.title} 
                     onChange={e => setUploadData({ ...uploadData, title: e.target.value })} 
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-slate-200">Semester</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      Semester
+                    </label>
                     <select 
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
                       value={selectedSemester} 
                       onChange={e => {
                         setSelectedSemester(e.target.value);
@@ -320,10 +427,12 @@ export default function MyUploads() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-slate-200">File Type *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                      File Type *
+                    </label>
                     <select 
                       required 
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
                       value={uploadData.file_type} 
                       onChange={e => setUploadData({ ...uploadData, file_type: e.target.value })}
                     >
@@ -336,10 +445,12 @@ export default function MyUploads() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-200">Subject *</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Target Subject *
+                  </label>
                   <select 
                     required 
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
                     value={uploadData.subject_id} 
                     onChange={e => setUploadData({ ...uploadData, subject_id: e.target.value })}
                   >
@@ -362,45 +473,54 @@ export default function MyUploads() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-200">Description (optional)</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Description (optional)
+                  </label>
                   <textarea 
                     rows={2}
-                    placeholder="Brief description or topics covered in this resource"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none text-white"
+                    placeholder="Brief description of chapters or topics covered"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
                     value={uploadData.description} 
                     onChange={e => setUploadData({ ...uploadData, description: e.target.value })} 
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-200">Choose File *</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Choose File *
+                  </label>
                   <input 
                     type="file" 
                     required 
                     ref={fileInputRef} 
                     onChange={handleFileChange}
-                    className="w-full text-sm text-slate-300 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700 cursor-pointer" 
+                    className="w-full text-xs text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-xl p-2 bg-slate-50" 
                   />
                   {file && (
-                    <div className="flex items-center gap-2 mt-2 text-xs text-purple-300 bg-purple-500/10 p-2 rounded-lg border border-purple-500/20">
-                      <span>Selected: <strong>{file.name}</strong> ({formatFileSize(file.size)})</span>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                      <FileCheck size={16} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">
+                        Selected: <strong>{file.name}</strong> ({formatFileSize(file.size)})
+                      </span>
                     </div>
                   )}
                 </div>
 
-                <button 
-                  type="submit" 
-                  disabled={uploading}
-                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg py-3 font-bold hover:opacity-90 transition mt-6 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" /> Uploading to S3...
-                    </>
-                  ) : (
-                    'Upload & Publish'
-                  )}
-                </button>
+                <div className="pt-2">
+                  <button 
+                    type="submit" 
+                    disabled={uploading}
+                    className="w-full bg-[#059669] hover:bg-[#047857] text-white rounded-2xl py-3.5 font-bold transition-all shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> Uploading to S3...
+                      </>
+                    ) : (
+                      'Upload & Publish to Students'
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           </div>

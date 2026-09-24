@@ -6,20 +6,17 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../lib/api';
 import { getAccessToken } from '../../lib/auth';
 import Navbar from '../../components/Navbar';
-import Sidebar from '../../components/Sidebar';
 import {
   Send,
   Wand2,
   Video,
   Search,
   Users,
-  Radio,
   BookOpen,
   GraduationCap,
   ShieldCheck,
-  Sparkles,
-  Layers,
-  ArrowRight,
+  ChevronLeft,
+  MessageSquare
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -60,13 +57,16 @@ export default function Classroom() {
   const [messageText, setMessageText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  
+  // Mobile responsive view toggle (show chat stream or room list on small screens)
+  const [mobileShowChat, setMobileShowChat] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ── Fetch Chat Groups (Semester-Scoped on Backend) ────────────
-  const { data: rooms, isLoading: roomsLoading, refetch: refetchRooms } = useQuery<ChatRoom[]>({
+  const { data: rooms, isLoading: roomsLoading } = useQuery<ChatRoom[]>({
     queryKey: ['chatGroups', isStudent ? studentSem : selectedSemFilter],
     queryFn: async () => {
       const semParam = isStudent ? studentSem : (selectedSemFilter !== null ? selectedSemFilter : '');
@@ -77,7 +77,7 @@ export default function Classroom() {
     enabled: Boolean(isAuthorized),
   });
 
-  // Auto-select first room when rooms load
+  // Auto-select first room on desktop when rooms load
   useEffect(() => {
     if (rooms && rooms.length > 0) {
       const roomStillExists = rooms.some((r) => r.id === activeRoomId);
@@ -158,7 +158,6 @@ export default function Classroom() {
               is_me: data.message.sender_id === user?.id,
             };
             setMessages((prev) => {
-              // Avoid duplicate messages
               if (prev.some((m) => m.id === incoming.id)) return prev;
               return [...prev, incoming];
             });
@@ -184,7 +183,6 @@ export default function Classroom() {
     }
   }, [user]);
 
-  // Connect WebSocket & fetch initial history whenever active room changes
   useEffect(() => {
     if (activeRoomId) {
       fetchMessages(activeRoomId);
@@ -207,12 +205,10 @@ export default function Classroom() {
     const trimmed = messageText.trim();
     if (!trimmed || !activeRoomId) return;
 
-    // Send via WebSocket if connected
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ content: trimmed }));
       setMessageText('');
     } else {
-      // Fallback to HTTP POST
       try {
         const res = await api.post(`/api/chat/groups/${activeRoomId}/messages/`, { content: trimmed });
         setMessages((prev) => [...prev, res.data]);
@@ -247,7 +243,6 @@ export default function Classroom() {
 
   const activeRoom = rooms?.find((r) => r.id === activeRoomId);
 
-  // Filter rooms by search
   const filteredRooms = (rooms || []).filter((r) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -260,40 +255,41 @@ export default function Classroom() {
     window.open(meetUrl, '_blank');
   };
 
-  if (isLoading || !isAuthorized) return null;
+  if (isLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden relative">
+    <div className="h-screen flex flex-col bg-[#f8fafc] text-slate-800 font-sans overflow-hidden">
+      <Navbar />
       <Toaster position="top-right" />
 
-      {/* Navigation: Sidebar for faculty, Navbar for students */}
-      {!isStudent ? (
-        <Sidebar />
-      ) : (
-        <div className="absolute top-0 w-full z-20">
-          <Navbar />
-        </div>
-      )}
-
-      <main className={`flex-1 flex overflow-hidden ${isStudent ? 'pt-16' : ''}`}>
+      <main className="flex-1 flex overflow-hidden">
         {/* ── LEFT PANEL: SEMESTER CHAT GROUPS ─────────────────── */}
-        <aside className="w-80 md:w-96 border-r border-slate-800/80 bg-slate-900/60 flex flex-col backdrop-blur-xl">
+        <aside
+          className={`${
+            mobileShowChat ? 'hidden' : 'flex'
+          } md:flex w-full md:w-80 lg:w-96 border-r border-slate-200/90 bg-white flex-col shrink-0`}
+        >
           {/* Header */}
-          <div className="p-4 border-b border-slate-800/80 space-y-3">
+          <div className="p-4 sm:p-5 border-b border-slate-200/90 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-purple-600/30">
-                  <Users size={16} />
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-[#059669] flex items-center justify-center border border-emerald-100">
+                  <Users size={18} />
                 </div>
                 <div>
-                  <h2 className="font-bold text-base text-white">Class Groups</h2>
-                  <p className="text-xs text-slate-400">Real-time semester channels</p>
+                  <h2 className="font-black text-base text-slate-900">Class Channels</h2>
+                  <p className="text-[11px] text-slate-500">Live discussion groups</p>
                 </div>
               </div>
 
-              {/* Semester Badge for Students */}
               {isStudent && (
-                <span className="inline-flex items-center gap-1 bg-purple-600/20 text-purple-300 text-xs font-semibold px-2.5 py-1 rounded-full border border-purple-500/30">
+                <span className="inline-flex items-center gap-1 bg-emerald-50 text-[#059669] text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-200">
                   <GraduationCap size={13} />
                   Sem {studentSem}
                 </span>
@@ -302,19 +298,19 @@ export default function Classroom() {
 
             {/* Scope Notice for Students */}
             {isStudent ? (
-              <div className="bg-purple-950/30 border border-purple-800/40 rounded-xl px-3 py-2 text-xs text-purple-200 flex items-center gap-2">
-                <ShieldCheck size={15} className="text-purple-400 shrink-0" />
-                <span>Only showing your enrolled <strong>Semester {studentSem}</strong> chat groups.</span>
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs text-emerald-800 flex items-center gap-2">
+                <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+                <span>Showing enrolled <strong>Semester {studentSem}</strong> discussion groups.</span>
               </div>
             ) : (
               /* Faculty Semester Filter Selector */
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
                   <span>Filter by Semester:</span>
                   {selectedSemFilter !== null && (
                     <button
                       onClick={() => setSelectedSemFilter(null)}
-                      className="text-purple-400 hover:text-purple-300 underline text-xs"
+                      className="text-[#059669] hover:underline text-xs font-bold"
                     >
                       Show All
                     </button>
@@ -325,10 +321,10 @@ export default function Classroom() {
                     <button
                       key={s}
                       onClick={() => setSelectedSemFilter(s)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border ${
                         selectedSemFilter === s
-                          ? 'bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-600/30'
-                          : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                          ? 'bg-[#059669] border-[#059669] text-white shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
                       Sem {s}
@@ -340,29 +336,29 @@ export default function Classroom() {
 
             {/* Search Box */}
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 text-slate-500" size={16} />
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={15} />
               <input
                 type="text"
-                placeholder="Search subject groups..."
+                placeholder="Search subject channels..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:bg-white transition"
               />
             </div>
           </div>
 
           {/* Group Channels List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/40">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {roomsLoading ? (
-              <div className="p-6 text-center text-xs text-slate-500 space-y-2">
-                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p>Loading semester chat groups...</p>
+              <div className="p-8 text-center text-xs text-slate-400 space-y-2">
+                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p>Loading class channels...</p>
               </div>
             ) : filteredRooms.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500 space-y-2">
-                <BookOpen size={24} className="mx-auto text-slate-600 mb-1" />
-                <p className="font-semibold text-slate-400">No chat groups found</p>
-                <p>
+              <div className="p-8 text-center text-xs text-slate-500 space-y-2">
+                <BookOpen size={24} className="mx-auto text-slate-400 mb-1" />
+                <p className="font-bold text-slate-700">No channels found</p>
+                <p className="text-slate-400">
                   {isStudent
                     ? `No subjects assigned to Semester ${studentSem} yet.`
                     : 'Select a different semester or create subjects.'}
@@ -374,31 +370,34 @@ export default function Classroom() {
                 return (
                   <button
                     key={room.id}
-                    onClick={() => setActiveRoomId(room.id)}
-                    className={`w-full text-left p-3.5 transition flex items-start gap-3 relative ${
+                    onClick={() => {
+                      setActiveRoomId(room.id);
+                      setMobileShowChat(true);
+                    }}
+                    className={`w-full text-left p-3.5 sm:p-4 transition-colors flex items-start gap-3 relative ${
                       isActive
-                        ? 'bg-purple-600/15 border-l-4 border-l-purple-500'
-                        : 'hover:bg-slate-800/40'
+                        ? 'bg-emerald-50/80 border-l-4 border-l-[#059669]'
+                        : 'hover:bg-slate-50/80'
                     }`}
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 transition ${
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-colors ${
                         isActive
-                          ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
-                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                          ? 'bg-[#059669] text-white shadow-xs'
+                          : 'bg-emerald-50 text-[#059669] border border-emerald-100'
                       }`}
                     >
                       {room.subject_code.slice(0, 3)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <h4 className="font-bold text-sm text-white truncate">{room.subject_name}</h4>
-                        <span className="text-[10px] text-purple-400 font-semibold shrink-0 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-800/40">
+                        <h4 className="font-bold text-sm text-slate-900 truncate">{room.subject_name}</h4>
+                        <span className="text-[10px] text-emerald-800 font-bold shrink-0 bg-emerald-100/70 px-1.5 py-0.5 rounded border border-emerald-200">
                           Sem {room.semester}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 truncate">
-                        {room.last_message || <span className="italic text-slate-500">No messages yet</span>}
+                      <p className="text-xs text-slate-500 truncate">
+                        {room.last_message || <span className="italic text-slate-400">No messages yet</span>}
                       </p>
                     </div>
                   </button>
@@ -409,38 +408,50 @@ export default function Classroom() {
         </aside>
 
         {/* ── RIGHT PANEL: CHAT STREAM & WEBSOCKET ────────────── */}
-        <section className="flex-1 flex flex-col bg-slate-950 relative">
+        <section
+          className={`${
+            mobileShowChat ? 'flex' : 'hidden'
+          } md:flex flex-1 flex-col bg-[#f8fafc] relative overflow-hidden`}
+        >
           {activeRoom ? (
             <>
               {/* Channel Header */}
-              <div className="h-16 border-b border-slate-800/80 px-6 flex items-center justify-between bg-slate-900/70 backdrop-blur-lg">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-base text-white">{activeRoom.subject_name}</h3>
-                      <span className="text-xs font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/50">
+              <div className="h-16 border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between bg-white backdrop-blur-md">
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Mobile Back Button */}
+                  <button
+                    onClick={() => setMobileShowChat(false)}
+                    className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
+                    title="Back to Channels"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 truncate">
+                      <h3 className="font-black text-base text-slate-900 truncate">{activeRoom.subject_name}</h3>
+                      <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 shrink-0">
                         {activeRoom.subject_code}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 text-xs">
-                      <span className="text-slate-400">Semester {activeRoom.semester} Class Channel</span>
-                      <span className="text-slate-600">•</span>
-                      {/* Live WebSocket Status Indicator */}
+                      <span className="text-slate-500 hidden sm:inline">Semester {activeRoom.semester} Channel</span>
+                      <span className="text-slate-300 hidden sm:inline">•</span>
                       <span className="inline-flex items-center gap-1.5 font-medium">
                         {wsStatus === 'connected' ? (
                           <>
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-emerald-400 text-[11px]">Live WebSocket</span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-emerald-700 font-bold text-[11px]">Live WebSocket</span>
                           </>
                         ) : wsStatus === 'connecting' ? (
                           <>
                             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                            <span className="text-amber-400 text-[11px]">Connecting...</span>
+                            <span className="text-amber-600 font-bold text-[11px]">Connecting...</span>
                           </>
                         ) : (
                           <>
                             <span className="w-2 h-2 rounded-full bg-rose-400" />
-                            <span className="text-rose-400 text-[11px]">Offline</span>
+                            <span className="text-rose-500 font-bold text-[11px]">Offline</span>
                           </>
                         )}
                       </span>
@@ -451,23 +462,23 @@ export default function Classroom() {
                 {/* Video Call Button */}
                 <button
                   onClick={launchVideoCall}
-                  className="flex items-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 px-3.5 py-1.5 rounded-xl transition text-xs font-semibold shadow-sm"
+                  className="flex items-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-[#059669] border border-emerald-200 px-3.5 py-1.5 rounded-xl transition text-xs font-bold shrink-0 shadow-xs"
                 >
                   <Video size={16} />
-                  <span>Class Video Meet</span>
+                  <span className="hidden sm:inline">Class Video Meet</span>
                 </button>
               </div>
 
               {/* Messages Stream */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                 {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-500 space-y-2">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-600/10 flex items-center justify-center text-purple-400 border border-purple-500/20">
-                      <Users size={24} />
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 space-y-2">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-[#059669] border border-emerald-100">
+                      <MessageSquare size={24} />
                     </div>
-                    <h4 className="text-base font-bold text-slate-300">Welcome to {activeRoom.subject_name}!</h4>
-                    <p className="text-xs max-w-sm">
-                      This is the official real-time discussion channel for Semester {activeRoom.semester}. Ask questions, share notes, and collaborate with your classmates and faculty.
+                    <h4 className="text-base font-bold text-slate-700">Welcome to #{activeRoom.subject_name}!</h4>
+                    <p className="text-xs max-w-sm text-slate-500">
+                      This is the official real-time discussion channel for Semester {activeRoom.semester}. Ask doubts, share syllabus topics, and collaborate with your classmates and faculty.
                     </p>
                   </div>
                 ) : (
@@ -478,18 +489,18 @@ export default function Classroom() {
                     return (
                       <div
                         key={msg.id || index}
-                        className={`flex gap-3 max-w-[80%] md:max-w-[70%] ${
+                        className={`flex gap-3 max-w-[85%] sm:max-w-[75%] ${
                           isMe ? 'ml-auto flex-row-reverse' : ''
                         }`}
                       >
                         {/* Avatar */}
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-md ${
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 shadow-xs ${
                             isMe
-                              ? 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white'
+                              ? 'bg-[#059669] text-white'
                               : isFaculty
-                              ? 'bg-gradient-to-tr from-amber-500 to-orange-600 text-white ring-2 ring-amber-400/40'
-                              : 'bg-slate-800 text-slate-200 border border-slate-700'
+                              ? 'bg-amber-500 text-white ring-2 ring-amber-200'
+                              : 'bg-slate-200 text-slate-700'
                           }`}
                         >
                           {msg.sender_name?.charAt(0)?.toUpperCase() || 'U'}
@@ -499,33 +510,33 @@ export default function Classroom() {
                         <div className={`space-y-1 ${isMe ? 'text-right' : 'text-left'}`}>
                           {/* Sender Identity & Role Badge */}
                           <div className={`flex items-center gap-2 text-xs ${isMe ? 'justify-end' : ''}`}>
-                            <span className="font-semibold text-slate-300">
+                            <span className="font-bold text-slate-700">
                               {isMe ? 'You' : msg.sender_name}
                             </span>
                             {isFaculty ? (
-                              <span className="bg-amber-500/20 text-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-500/40">
+                              <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200">
                                 Faculty
                               </span>
                             ) : (
-                              <span className="bg-blue-500/15 text-blue-300 text-[10px] font-medium px-1.5 py-0.5 rounded border border-blue-500/30">
+                              <span className="bg-emerald-50 text-[#059669] text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-200">
                                 Student
                               </span>
                             )}
                             {msg.created_at && (
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-[10px] text-slate-400">
                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             )}
                           </div>
 
-                          {/* Message Text */}
+                          {/* Message Text Bubble */}
                           <div
-                            className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-md ${
+                            className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-xs ${
                               isMe
-                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-tr-sm'
+                                ? 'bg-[#059669] text-white rounded-tr-xs'
                                 : isFaculty
-                                ? 'bg-slate-800/90 text-slate-100 border border-amber-500/30 rounded-tl-sm'
-                                : 'bg-slate-800/90 text-slate-200 border border-slate-700/60 rounded-tl-sm'
+                                ? 'bg-amber-50/90 text-slate-900 border border-amber-200/90 rounded-tl-xs'
+                                : 'bg-white text-slate-800 border border-slate-200/90 rounded-tl-xs'
                             }`}
                           >
                             {msg.content}
@@ -539,15 +550,15 @@ export default function Classroom() {
               </div>
 
               {/* Message Input Box */}
-              <div className="p-4 bg-slate-900/80 border-t border-slate-800/80 backdrop-blur-lg">
-                <form onSubmit={handleSendMessage} className="flex items-end gap-3 max-w-5xl mx-auto">
-                  <div className="flex-1 bg-slate-800/80 border border-slate-700/80 rounded-2xl relative focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition shadow-inner">
+              <div className="p-3 sm:p-4 bg-white border-t border-slate-200/90">
+                <form onSubmit={handleSendMessage} className="flex items-end gap-2 sm:gap-3 max-w-5xl mx-auto">
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl relative focus-within:border-[#059669] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:bg-white transition">
                     <textarea
                       value={messageText}
                       onChange={(e) => setMessageText(e.target.value)}
                       placeholder={`Message #${activeRoom.subject_name}...`}
                       rows={1}
-                      className="w-full bg-transparent resize-none py-3 pl-4 pr-12 text-sm text-white placeholder-slate-500 focus:outline-none max-h-32"
+                      className="w-full bg-transparent resize-none py-3 pl-4 pr-11 text-sm text-slate-900 placeholder-slate-400 focus:outline-none max-h-32"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -558,17 +569,17 @@ export default function Classroom() {
                     <button
                       type="button"
                       onClick={handlePolishMessage}
-                      title="Polish with AI"
-                      className="absolute right-3 top-3 text-purple-400 hover:text-purple-300 p-1 rounded-lg hover:bg-slate-700/50 transition"
+                      title="Polish message with Academic AI"
+                      className="absolute right-2.5 top-2.5 text-[#059669] hover:text-[#047857] p-1.5 rounded-xl hover:bg-emerald-50 transition"
                     >
-                      <Wand2 size={18} />
+                      <Wand2 size={17} />
                     </button>
                   </div>
 
                   <button
                     type="submit"
                     disabled={!messageText.trim()}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 text-white p-3 rounded-2xl transition disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-600/30 shrink-0"
+                    className="bg-[#059669] hover:bg-[#047857] text-white p-3 rounded-2xl transition shadow-md shadow-emerald-600/20 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                   >
                     <Send size={18} />
                   </button>
@@ -576,13 +587,13 @@ export default function Classroom() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-3">
-              <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-purple-400 shadow-xl">
-                <BookOpen size={32} />
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-3">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#059669] shadow-xs">
+                <BookOpen size={30} />
               </div>
-              <h3 className="text-lg font-bold text-slate-300">Select a Class Group</h3>
+              <h3 className="text-lg font-black text-slate-800">Select a Class Channel</h3>
               <p className="text-xs text-slate-500 max-w-sm">
-                Choose a subject from the left panel to join your semester's real-time discussion channel.
+                Choose a subject channel from the panel to join your semester discussion room.
               </p>
             </div>
           )}

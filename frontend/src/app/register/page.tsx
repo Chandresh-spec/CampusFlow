@@ -16,7 +16,6 @@ import {
   Phone, 
   Layers, 
   Hash, 
-  KeyRound, 
   Loader2,
   Check
 } from 'lucide-react';
@@ -206,34 +205,34 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans">
       <Toaster position="top-right" />
 
       {/* ── Ambient Background Glow Orbs ──────────────────────────── */}
-      <div className="absolute top-[-10%] right-[-10%] w-[550px] h-[550px] bg-violet-600/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[550px] h-[550px] bg-cyan-500/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-[550px] h-[550px] bg-emerald-100/70 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[550px] h-[550px] bg-teal-100/70 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="w-full max-w-3xl relative z-10">
-        <div className="glass-card rounded-3xl p-6 sm:p-10 border border-white/[0.1] shadow-2xl relative backdrop-blur-2xl">
-          {/* Top Rainbow Accent Strip */}
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400" />
+        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-xl relative">
+          {/* Top Emerald Accent Strip */}
+          <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-[#059669]" />
 
           {/* Header */}
           <div className="text-center max-w-lg mx-auto mb-8">
             <Link href="/" className="inline-flex items-center gap-2.5 mb-3 group">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-cyan-400 p-[1.5px] shadow-lg">
-                <div className="w-full h-full rounded-[14px] bg-[#0c1220] flex items-center justify-center">
-                  <GraduationCap size={22} className="text-violet-400 group-hover:scale-110 transition-transform" />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 p-[1.5px] shadow-sm">
+                <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+                  <GraduationCap size={22} className="text-[#059669] group-hover:scale-110 transition-transform" />
                 </div>
               </div>
-              <span className="font-black text-2xl tracking-tight text-white">
-                Campus<span className="text-violet-400">Flow</span>
+              <span className="font-black text-2xl tracking-tight text-slate-900">
+                Campus<span className="text-[#059669]">Flow</span>
               </span>
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Create Your Academic Account
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1">
+            <p className="text-slate-500 text-xs sm:text-sm mt-1">
               Join your campus network for notes, doubt rooms, and academic AI
             </p>
           </div>
@@ -245,20 +244,20 @@ export default function Register() {
               onClick={() => setRole('Student')}
               className={`p-4 rounded-2xl border text-left transition-all duration-200 relative ${
                 role === 'Student'
-                  ? 'bg-gradient-to-br from-violet-600/25 to-indigo-600/15 border-violet-500/60 shadow-lg shadow-violet-600/20'
-                  : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15]'
+                  ? 'bg-emerald-50/70 border-emerald-400 shadow-sm ring-1 ring-emerald-400/40'
+                  : 'bg-white border-slate-200 hover:border-slate-300'
               }`}
             >
               {role === 'Student' && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center text-white">
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#059669] flex items-center justify-center text-white">
                   <Check size={12} />
                 </div>
               )}
-              <div className="w-9 h-9 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center mb-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-[#059669] flex items-center justify-center mb-2">
                 <GraduationCap size={18} />
               </div>
-              <p className="text-sm font-bold text-white">Student Account</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-sm font-bold text-slate-900">Student Account</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 Semester notes, classroom doubts, and AI study assistant
               </p>
             </button>
@@ -268,20 +267,20 @@ export default function Register() {
               onClick={() => setRole('Faculty')}
               className={`p-4 rounded-2xl border text-left transition-all duration-200 relative ${
                 role === 'Faculty'
-                  ? 'bg-gradient-to-br from-cyan-600/25 to-blue-600/15 border-cyan-500/60 shadow-lg shadow-cyan-600/20'
-                  : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15]'
+                  ? 'bg-emerald-50/70 border-emerald-400 shadow-sm ring-1 ring-emerald-400/40'
+                  : 'bg-white border-slate-200 hover:border-slate-300'
               }`}
             >
               {role === 'Faculty' && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center text-white">
+                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#059669] flex items-center justify-center text-white">
                   <Check size={12} />
                 </div>
               )}
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-2">
+              <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center mb-2">
                 <ShieldCheck size={18} />
               </div>
-              <p className="text-sm font-bold text-white">Faculty / Professor</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-sm font-bold text-slate-900">Faculty / Professor</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
                 Upload course resources, answer doubts, and manage subjects
               </p>
             </button>
@@ -291,7 +290,7 @@ export default function Register() {
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                   Username *
                 </label>
                 <div className="relative">
@@ -302,13 +301,13 @@ export default function Register() {
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="e.g. rahul_kumar"
-                    className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                   Password *
                 </label>
                 <div className="relative">
@@ -319,13 +318,13 @@ export default function Register() {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="••••••••"
-                    className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                   Gmail Address *
                 </label>
                 <div className="relative">
@@ -336,13 +335,13 @@ export default function Register() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="user@gmail.com"
-                    className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                   Mobile Number
                 </label>
                 <div className="relative">
@@ -352,7 +351,7 @@ export default function Register() {
                     value={formData.mobile_number}
                     onChange={(e) => setFormData({ ...formData, mobile_number: e.target.value })}
                     placeholder="+91 9876543210"
-                    className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
@@ -361,7 +360,7 @@ export default function Register() {
               {role === 'Student' && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                       Enrolled Semester *
                     </label>
                     <div className="relative">
@@ -369,10 +368,10 @@ export default function Register() {
                       <select
                         value={formData.semester}
                         onChange={(e) => setFormData({ ...formData, semester: e.target.value })}
-                        className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none appearance-none"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none focus:bg-white focus:border-emerald-500 appearance-none"
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                          <option key={s} value={String(s)} className="bg-[#0c1220] text-white">
+                          <option key={s} value={String(s)}>
                             Semester {s} (Class {s})
                           </option>
                         ))}
@@ -381,7 +380,7 @@ export default function Register() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                       Student USN (Roll Number)
                     </label>
                     <div className="relative">
@@ -391,7 +390,7 @@ export default function Register() {
                         value={formData.usn}
                         onChange={(e) => setFormData({ ...formData, usn: e.target.value })}
                         placeholder="e.g. 1CR21CS045"
-                        className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium uppercase outline-none"
+                        className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium uppercase outline-none focus:bg-white focus:border-emerald-500"
                       />
                     </div>
                   </div>
@@ -400,14 +399,14 @@ export default function Register() {
             </div>
 
             {/* ── Optional Gmail OTP Verification Box ──────────────────── */}
-            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3">
+            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/90 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <ShieldCheck size={15} className="text-emerald-400" />
+                  <p className="text-xs font-bold text-[#065f46] flex items-center gap-1.5">
+                    <ShieldCheck size={15} className="text-[#059669]" />
                     <span>Gmail OTP Verification</span>
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600">
                     Verify ownership of your email address for instant verified status
                   </p>
                 </div>
@@ -415,15 +414,15 @@ export default function Register() {
                   type="button"
                   onClick={handleSendRegisterOtp}
                   disabled={otpSending || countdown > 0}
-                  className="px-3.5 py-1.5 rounded-xl bg-violet-600/30 hover:bg-violet-600/50 border border-violet-500/40 text-violet-200 text-xs font-bold transition disabled:opacity-50 shrink-0"
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-emerald-300 text-[#065f46] text-xs font-bold transition shadow-xs disabled:opacity-50 shrink-0"
                 >
                   {otpSending ? 'Sending...' : countdown > 0 ? `Resend (${countdown}s)` : otpSent ? 'Resend OTP' : 'Send Code to Gmail'}
                 </button>
               </div>
 
               {otpSent && (
-                <div className="pt-2 border-t border-white/[0.06]">
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1 uppercase tracking-wider">
+                <div className="pt-2 border-t border-emerald-200">
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1 uppercase tracking-wider">
                     Enter 6-Digit OTP Code
                   </label>
                   <input
@@ -432,7 +431,7 @@ export default function Register() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="123456"
-                    className="w-full glass-input rounded-xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none"
+                    className="w-full bg-white border border-slate-200 text-slate-800 rounded-xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none focus:border-emerald-500"
                   />
                 </div>
               )}
@@ -442,7 +441,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-bold text-sm shadow-lg shadow-violet-600/30 hover:shadow-violet-600/50 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
+              className="w-full py-3.5 px-4 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm shadow-md shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 mt-4"
             >
               {loading ? (
                 <>
@@ -463,7 +462,7 @@ export default function Register() {
             <button
               type="button"
               onClick={handleGoogleSignUp}
-              className="inline-flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-semibold text-slate-300 hover:text-white transition"
+              className="inline-flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 shadow-xs transition"
             >
               <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path
@@ -488,9 +487,9 @@ export default function Register() {
           </div>
 
           {/* Bottom Login Link */}
-          <p className="mt-5 text-center text-xs text-slate-400">
+          <p className="mt-5 text-center text-xs text-slate-500">
             Already have an account?{' '}
-            <Link href="/login" className="font-bold text-violet-400 hover:text-violet-300 transition">
+            <Link href="/login" className="font-bold text-[#059669] hover:text-[#047857] transition">
               Sign in here →
             </Link>
           </p>

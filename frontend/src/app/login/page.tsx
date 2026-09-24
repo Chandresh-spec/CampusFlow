@@ -17,10 +17,8 @@ import {
   ShieldCheck, 
   KeyRound, 
   CheckCircle2, 
-  Zap,
-  BookOpen,
-  Layers,
-  Loader2
+  BookOpen, 
+  Loader2 
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -252,13 +250,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex items-center justify-center p-4 sm:p-6 lg:p-10 relative overflow-hidden font-sans">
       <Toaster position="top-right" />
 
       {/* ── Ambient Background Glow Orbs ──────────────────────────── */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-violet-600/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[20%] w-[350px] h-[350px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-100/70 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-100/70 rounded-full blur-[140px] pointer-events-none" />
 
       {/* ── Main Split Container ────────────────────────────────────── */}
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
@@ -266,111 +263,111 @@ export default function Login() {
         {/* ── Left Side: Brand & Feature Highlights ──────────────────── */}
         <div className="lg:col-span-6 hidden lg:flex flex-col justify-center space-y-8 pr-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-400 p-[1.5px] shadow-xl shadow-violet-600/30">
-              <div className="w-full h-full rounded-[14px] bg-[#0c1220] flex items-center justify-center">
-                <GraduationCap size={26} className="text-violet-400" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 p-[1.5px] shadow-sm shadow-emerald-500/20">
+              <div className="w-full h-full rounded-[14px] bg-white flex items-center justify-center">
+                <GraduationCap size={26} className="text-[#059669]" />
               </div>
             </div>
             <div>
-              <span className="font-black text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">
-                Campus<span className="text-violet-400">Flow</span>
+              <span className="font-black text-2xl tracking-tight text-slate-900">
+                Campus<span className="text-[#059669]">Flow</span>
               </span>
-              <p className="text-xs font-semibold text-violet-300/70 tracking-widest uppercase">
+              <p className="text-xs font-bold text-emerald-700 tracking-wider uppercase">
                 Academic Operating System
               </p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight">
+          <div className="space-y-3">
+            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 leading-tight tracking-tight">
               Elevate Your <br />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#059669] via-emerald-600 to-teal-600">
                 College Experience
               </span>
             </h1>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-md">
+            <p className="text-slate-600 text-sm leading-relaxed max-w-md">
               Secure institutional access with instant class notes distribution, Groq LPU powered academic AI, and semester-scoped doubt clearing channels.
             </p>
           </div>
 
           {/* Feature Badges */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
-              <div className="w-9 h-9 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center shrink-0 border border-violet-500/30">
+            <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#059669] flex items-center justify-center shrink-0 border border-emerald-100">
                 <Sparkles size={18} />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-200">Sub-Second NexusAI Assistant</p>
-                <p className="text-[11px] text-slate-400">Deep RAG semantic search over verified subject syllabus</p>
+                <p className="text-xs font-bold text-slate-900">Sub-Second NexusAI Assistant</p>
+                <p className="text-[11px] text-slate-500">Deep semantic search over verified subject syllabus</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30">
+            <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 border border-teal-100">
                 <BookOpen size={18} />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-200">Semester-Isolated Study Notes</p>
-                <p className="text-[11px] text-slate-400">High-speed AWS S3 storage with automatic faculty approval</p>
+                <p className="text-xs font-bold text-slate-900">Semester-Isolated Study Notes</p>
+                <p className="text-[11px] text-slate-500">High-speed AWS S3 storage with automatic faculty approval</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+            <div className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#059669] flex items-center justify-center shrink-0 border border-emerald-100">
                 <ShieldCheck size={18} />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-200">Strict Role Verification</p>
-                <p className="text-[11px] text-slate-400">Google OAuth 2.0 & Institutional Gmail OTP authentication</p>
+                <p className="text-xs font-bold text-slate-900">Strict Role Verification</p>
+                <p className="text-[11px] text-slate-500">Google OAuth 2.0 & Institutional Gmail OTP authentication</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-400/90 pt-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="flex items-center gap-2 text-xs font-bold text-[#059669] pt-1">
+            <span className="w-2 h-2 rounded-full bg-[#059669] animate-pulse" />
             <span>Campus Network Online • 2026 Academic Edition</span>
           </div>
         </div>
 
-        {/* ── Right Side: Trending Glassmorphism Login Card ──────────── */}
+        {/* ── Right Side: Modern White + Green Login Card ────────────── */}
         <div className="lg:col-span-6 w-full">
-          <div className="glass-card rounded-3xl p-6 sm:p-9 border border-white/[0.1] shadow-2xl relative overflow-hidden backdrop-blur-2xl">
-            {/* Subtle Top Card Border Highlight */}
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400" />
+          <div className="bg-white rounded-3xl p-6 sm:p-9 border border-slate-200/90 shadow-xl relative overflow-hidden">
+            {/* Top Emerald Accent Strip */}
+            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-[#059669]" />
 
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center gap-2.5 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center text-white">
+              <div className="w-9 h-9 rounded-xl bg-[#059669] flex items-center justify-center text-white">
                 <GraduationCap size={20} />
               </div>
               <div>
-                <span className="font-extrabold text-lg text-white">CampusFlow</span>
-                <span className="text-[10px] text-violet-400 block -mt-1 font-semibold">Smart College</span>
+                <span className="font-extrabold text-lg text-slate-900">CampusFlow</span>
+                <span className="text-[10px] text-emerald-700 block -mt-1 font-bold">Smart College</span>
               </div>
             </div>
 
             <div className="mb-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-[11px] font-bold text-violet-300 mb-2">
-                <ShieldCheck size={13} className="text-violet-400" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-[#065f46] mb-2 shadow-xs">
+                <ShieldCheck size={13} className="text-[#059669]" />
                 <span>Institutional Portal</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 Sign In to Account
               </h2>
-              <p className="text-slate-400 text-xs mt-1">
+              <p className="text-slate-500 text-xs mt-1">
                 Enter your credentials or authenticate via Google OAuth
               </p>
             </div>
 
             {/* Role Switcher Pill */}
-            <div className="grid grid-cols-2 p-1 bg-white/[0.04] border border-white/[0.08] rounded-2xl mb-6">
+            <div className="grid grid-cols-2 p-1 bg-slate-100/80 border border-slate-200 rounded-2xl mb-6">
               <button
                 type="button"
                 onClick={() => setSelectedRole('student')}
                 className={`py-2 text-xs font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
                   selectedRole === 'student'
-                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/30'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#059669] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <GraduationCap size={15} />
@@ -381,8 +378,8 @@ export default function Login() {
                 onClick={() => setSelectedRole('faculty')}
                 className={`py-2 text-xs font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 ${
                   selectedRole === 'faculty'
-                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-600/30'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#059669] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <ShieldCheck size={15} />
@@ -393,7 +390,7 @@ export default function Login() {
             {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                   Username
                 </label>
                 <div className="relative">
@@ -404,14 +401,14 @@ export default function Login() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="Enter your username"
-                    className="w-full glass-input rounded-2xl pl-11 pr-4 py-3 text-sm font-medium outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Password
                   </label>
                   <button
@@ -420,7 +417,7 @@ export default function Login() {
                       setForgotStep('email');
                       setShowForgotModal(true);
                     }}
-                    className="text-xs text-violet-400 hover:text-violet-300 transition font-semibold"
+                    className="text-xs text-[#059669] hover:text-[#047857] transition font-bold"
                   >
                     Forgot password?
                   </button>
@@ -433,12 +430,12 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full glass-input rounded-2xl pl-11 pr-11 py-3 text-sm font-medium outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-2xl pl-11 pr-11 py-3 text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition"
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-700 transition"
                     aria-label="Toggle password visibility"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -450,7 +447,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-bold text-sm shadow-lg shadow-violet-600/30 hover:shadow-violet-600/50 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 px-4 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-sm shadow-md shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -469,9 +466,9 @@ export default function Login() {
             {/* Divider */}
             <div className="relative my-6 text-center">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/[0.08]" />
+                <div className="w-full border-t border-slate-200" />
               </div>
-              <span className="relative px-3 bg-[#0c1220] text-slate-400 text-[11px] font-semibold uppercase tracking-wider">
+              <span className="relative px-3 bg-white text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 Or authenticate with
               </span>
             </div>
@@ -481,7 +478,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={handleGoogleButtonClick}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] text-xs font-semibold text-slate-200 transition"
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 shadow-xs transition"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -510,17 +507,17 @@ export default function Login() {
                   setGmailRole(selectedRole);
                   setShowGmailModal(true);
                 }}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] text-xs font-semibold text-slate-200 transition"
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 shadow-xs transition"
               >
-                <Mail size={16} className="text-violet-400" />
+                <Mail size={16} className="text-[#059669]" />
                 <span>Gmail OTP</span>
               </button>
             </div>
 
             {/* Bottom Register Prompt */}
-            <p className="mt-6 text-center text-xs text-slate-400">
+            <p className="mt-6 text-center text-xs text-slate-500">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="font-bold text-violet-400 hover:text-violet-300 transition">
+              <Link href="/register" className="font-bold text-[#059669] hover:text-[#047857] transition">
                 Create an account →
               </Link>
             </p>
@@ -531,45 +528,45 @@ export default function Login() {
 
       {/* ── Forgot Password Modal ───────────────────────────────────── */}
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-          <div className="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full border border-white/[0.1] shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl relative">
             <button
               onClick={() => setShowForgotModal(false)}
-              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-white/[0.08] text-slate-400 hover:text-white transition"
+              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
             >
               <X size={18} />
             </button>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-violet-600/20 text-violet-400 border border-violet-500/30 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#059669] border border-emerald-200 flex items-center justify-center">
                 <KeyRound size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Reset Password</h3>
-                <p className="text-xs text-slate-400">Step {forgotStep === 'email' ? '1 of 3' : forgotStep === 'otp' ? '2 of 3' : '3 of 3'}</p>
+                <h3 className="text-lg font-bold text-slate-900">Reset Password</h3>
+                <p className="text-xs text-slate-500">Step {forgotStep === 'email' ? '1 of 3' : forgotStep === 'otp' ? '2 of 3' : '3 of 3'}</p>
               </div>
             </div>
 
             {forgotStep === 'email' && (
               <form onSubmit={handleSendForgotOtp} className="space-y-4">
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-600">
                   Enter your registered email address and we&apos;ll send you a 6-digit verification code.
                 </p>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">Email Address</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Email Address</label>
                   <input
                     type="email"
                     required
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="user@gmail.com"
-                    className="w-full glass-input rounded-2xl px-4 py-2.5 text-sm outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-violet-600/30 transition disabled:opacity-50"
+                  className="w-full py-3 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                 >
                   {forgotLoading ? 'Sending Code...' : 'Send Verification OTP'}
                 </button>
@@ -578,11 +575,11 @@ export default function Login() {
 
             {forgotStep === 'otp' && (
               <form onSubmit={handleVerifyForgotOtp} className="space-y-4">
-                <p className="text-xs text-slate-300">
-                  Enter the 6-digit OTP code sent to <span className="text-violet-400 font-bold">{forgotEmail}</span>:
+                <p className="text-xs text-slate-600">
+                  Enter the 6-digit OTP code sent to <span className="text-[#059669] font-bold">{forgotEmail}</span>:
                 </p>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">6-Digit OTP</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">6-Digit OTP</label>
                   <input
                     type="text"
                     maxLength={6}
@@ -590,13 +587,13 @@ export default function Login() {
                     value={forgotOtp}
                     onChange={(e) => setForgotOtp(e.target.value)}
                     placeholder="123456"
-                    className="w-full glass-input rounded-2xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none focus:bg-white focus:border-emerald-500"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-violet-600/30 transition disabled:opacity-50"
+                  className="w-full py-3 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                 >
                   {forgotLoading ? 'Verifying...' : 'Verify OTP Code'}
                 </button>
@@ -605,24 +602,24 @@ export default function Login() {
 
             {forgotStep === 'reset' && (
               <form onSubmit={handleResetPassword} className="space-y-4">
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-600">
                   Enter your new password below (minimum 6 characters):
                 </p>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">New Password</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">New Password</label>
                   <input
                     type="password"
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full glass-input rounded-2xl px-4 py-2.5 text-sm outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition disabled:opacity-50"
+                  className="w-full py-3 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                 >
                   {forgotLoading ? 'Saving...' : 'Set New Password & Login'}
                 </button>
@@ -634,44 +631,44 @@ export default function Login() {
 
       {/* ── Gmail OTP Login Modal ───────────────────────────────────── */}
       {showGmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-          <div className="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full border border-white/[0.1] shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-200 shadow-2xl relative">
             <button
               onClick={() => {
                 setShowGmailModal(false);
                 setGmailOtpSent(false);
               }}
-              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-white/[0.08] text-slate-400 hover:text-white transition"
+              className="absolute top-5 right-5 p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
             >
               <X size={18} />
             </button>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-violet-600/20 text-violet-400 border border-violet-500/30 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#059669] border border-emerald-200 flex items-center justify-center">
                 <Mail size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Gmail OTP Login</h3>
-                <p className="text-xs text-slate-400">Passwordless verified sign-in</p>
+                <h3 className="text-lg font-bold text-slate-900">Gmail OTP Login</h3>
+                <p className="text-xs text-slate-500">Passwordless verified sign-in</p>
               </div>
             </div>
 
             {!gmailOtpSent ? (
               <form onSubmit={handleSendGmailOtp} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">Account Role</label>
-                  <div className="grid grid-cols-2 p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs font-bold">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Account Role</label>
+                  <div className="grid grid-cols-2 p-1 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold">
                     <button
                       type="button"
                       onClick={() => setGmailRole('student')}
-                      className={`py-1.5 rounded-lg transition ${gmailRole === 'student' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      className={`py-1.5 rounded-lg transition ${gmailRole === 'student' ? 'bg-[#059669] text-white' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       Student
                     </button>
                     <button
                       type="button"
                       onClick={() => setGmailRole('faculty')}
-                      className={`py-1.5 rounded-lg transition ${gmailRole === 'faculty' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      className={`py-1.5 rounded-lg transition ${gmailRole === 'faculty' ? 'bg-[#059669] text-white' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       Faculty
                     </button>
@@ -679,32 +676,32 @@ export default function Login() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">Gmail Address</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Gmail Address</label>
                   <input
                     type="email"
                     required
                     value={gmailEmail}
                     onChange={(e) => setGmailEmail(e.target.value)}
                     placeholder="username@gmail.com"
-                    className="w-full glass-input rounded-2xl px-4 py-2.5 text-sm outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={gmailLoading}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-violet-600/30 transition disabled:opacity-50"
+                  className="w-full py-3 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                 >
                   {gmailLoading ? 'Sending OTP...' : 'Send Login OTP'}
                 </button>
               </form>
             ) : (
               <form onSubmit={handleVerifyGmailLogin} className="space-y-4">
-                <p className="text-xs text-slate-300">
-                  Enter the 6-digit OTP code sent to <span className="text-violet-400 font-bold">{gmailEmail}</span>:
+                <p className="text-xs text-slate-600">
+                  Enter the 6-digit OTP code sent to <span className="text-[#059669] font-bold">{gmailEmail}</span>:
                 </p>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider">6-Digit OTP</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">6-Digit OTP</label>
                   <input
                     type="text"
                     maxLength={6}
@@ -712,21 +709,21 @@ export default function Login() {
                     value={gmailOtp}
                     onChange={(e) => setGmailOtp(e.target.value)}
                     placeholder="123456"
-                    className="w-full glass-input rounded-2xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl px-4 py-2.5 text-sm text-center font-mono tracking-widest outline-none focus:bg-white focus:border-emerald-500"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setGmailOtpSent(false)}
-                    className="w-1/3 py-2.5 rounded-xl border border-white/[0.1] text-xs font-semibold text-slate-300 hover:bg-white/[0.06]"
+                    className="w-1/3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
                   >
                     Change Email
                   </button>
                   <button
                     type="submit"
                     disabled={gmailLoading}
-                    className="w-2/3 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-violet-600/30 transition disabled:opacity-50"
+                    className="w-2/3 py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-bold text-xs shadow-md transition disabled:opacity-50"
                   >
                     {gmailLoading ? 'Verifying...' : 'Verify & Login'}
                   </button>
