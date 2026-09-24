@@ -48,11 +48,12 @@ export default function Classroom() {
   const { isAuthorized, isLoading } = useRoleGuard(['student', 'faculty', 'admin']);
   const { user } = useAuth();
 
-  const isStudent = user?.role?.toLowerCase() === 'student';
+  const role = (user?.role || '').toLowerCase();
+  const isStudent = role === 'student' || (!role.includes('faculty') && !role.includes('teacher') && !role.includes('admin'));
   const studentSem = Number(user?.sem || user?.semester || 1);
 
   // For faculty: selected semester filter (null = all)
-  const [selectedSemFilter, setSelectedSemFilter] = useState<number | null>(isStudent ? studentSem : null);
+  const [selectedSemFilter, setSelectedSemFilter] = useState<number | null>(null);
   const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -68,7 +69,7 @@ export default function Classroom() {
 
   // ── Fetch Chat Groups (Semester-Scoped on Backend) ────────────
   const { data: rooms, isLoading: roomsLoading } = useQuery<ChatRoom[]>({
-    queryKey: ['chatGroups', isStudent ? studentSem : selectedSemFilter],
+    queryKey: ['chatGroups', isStudent, studentSem, selectedSemFilter],
     queryFn: async () => {
       const semParam = isStudent ? studentSem : (selectedSemFilter !== null ? selectedSemFilter : '');
       const url = semParam ? `/api/chat/groups/?sem=${semParam}` : `/api/chat/groups/`;
@@ -245,6 +246,14 @@ export default function Classroom() {
   const activeRoom = rooms?.find((r) => r.id === activeRoomId);
 
   const filteredRooms = (rooms || []).filter((r) => {
+    // Strict semester isolation: students ONLY see their enrolled semester's channels
+    if (isStudent && r.semester && Number(r.semester) !== studentSem) {
+      return false;
+    }
+    // Faculty semester filter (if selected)
+    if (!isStudent && selectedSemFilter !== null && r.semester && Number(r.semester) !== selectedSemFilter) {
+      return false;
+    }
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return r.subject_name.toLowerCase().includes(q) || r.subject_code.toLowerCase().includes(q);

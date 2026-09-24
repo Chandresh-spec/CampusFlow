@@ -125,9 +125,9 @@ export default function Navbar() {
                 className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 transition-all"
               >
                 <div className="w-8 h-8 rounded-full bg-[#059669] text-white font-extrabold text-xs flex items-center justify-center shadow-xs overflow-hidden">
-                  {user?.avatar_url && !avatarErr ? (
+                  {(user?.avatar_url || user?.id) && !avatarErr ? (
                     <img 
-                      src={user.avatar_url} 
+                      src={user?.avatar_url && (user.avatar_url.startsWith('http') || user.avatar_url.startsWith('/api/')) ? user.avatar_url : `/api/profile/avatar/${user?.id}/`} 
                       alt={username} 
                       onError={() => setAvatarErr(true)}
                       className="w-full h-full object-cover" 

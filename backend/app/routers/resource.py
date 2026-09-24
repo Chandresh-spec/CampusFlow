@@ -175,7 +175,8 @@ async def student_dashboard(
     user = Depends(require_role("student")),
     db: AsyncSession = Depends(get_db)
 ):
-    target_sem = semester or user.sem or 1
+    # Enforce strict semester isolation: students ONLY see their enrolled semester's notes
+    target_sem = user.sem or 1
     
     # 1. Fetch all subjects for the target semester
     subs_query = (
@@ -256,13 +257,12 @@ async def student_dashboard(
 
 @router.get("/student/search/")
 async def student_search(q: str, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return []
+    student_sem = user.sem or 1
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
+        .where(Sem.sem_nmbr == student_sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .where(Resource.title.ilike(f"%{q}%"))
         .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
@@ -272,13 +272,12 @@ async def student_search(q: str, user = Depends(require_role("student")), db: As
 
 @router.get("/student/filter/")
 async def student_filter(subject: Optional[str] = None, professor: Optional[str] = None, type: Optional[str] = None, user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return []
+    student_sem = user.sem or 1
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
+        .where(Sem.sem_nmbr == student_sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .options(selectinload(Resource.subject).selectinload(Subject.faculty), selectinload(Resource.uploaded_by))
     )
@@ -291,13 +290,12 @@ async def student_filter(subject: Optional[str] = None, professor: Optional[str]
 
 @router.get("/student/resources/")
 async def list_student_resources(user = Depends(require_role("student")), db: AsyncSession = Depends(get_db)):
-    if not user.sem:
-        return []
+    student_sem = user.sem or 1
     query = (
         select(Resource)
         .join(Subject, Resource.subject_id == Subject.id)
         .join(Sem, Subject.sem_id == Sem.id)
-        .where(Sem.sem_nmbr == user.sem)
+        .where(Sem.sem_nmbr == student_sem)
         .where(Resource.status == ResourceStatus.APPROVED)
         .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
     )
@@ -309,12 +307,17 @@ async def get_student_resource(id: int, user = Depends(require_role("student")),
     query = (
         select(Resource)
         .where(Resource.id == id, Resource.status == ResourceStatus.APPROVED)
-        .options(selectinload(Resource.subject), selectinload(Resource.uploaded_by))
+        .options(selectinload(Resource.subject).selectinload(Subject.sem), selectinload(Resource.uploaded_by))
     )
     res = await db.execute(query)
     resource = res.scalar_one_or_none()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
+        
+    student_sem = user.sem or 1
+    if resource.subject and resource.subject.sem and resource.subject.sem.sem_nmbr != student_sem:
+        raise HTTPException(status_code=403, detail="Access denied. You can only view study materials for your enrolled semester.")
+
     if resource.s3_key and not resource.s3_url:
         try:
             resource.s3_url = await s3_service.generate_presigned_download_url(resource.s3_key)

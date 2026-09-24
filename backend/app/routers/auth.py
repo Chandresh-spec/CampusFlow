@@ -32,15 +32,37 @@ def mask_email(email: str) -> str:
     return f"{masked_name}@{domain}"
 
 def format_user_dict(u: User) -> dict:
+    import glob, os
+    avatar_url = None
+    raw_avatar = getattr(u, "avatar_url", None)
+    if raw_avatar:
+        if raw_avatar.startswith("http") or raw_avatar.startswith("/api/"):
+            avatar_url = raw_avatar
+        else:
+            avatar_url = f"/api/profile/avatar/{u.id}/"
+    else:
+        # Check disk cache as well
+        for base_dir in ["/app/data", "./backend/data", "./data", "."]:
+            matches = glob.glob(os.path.join(base_dir, "avatars", f"user_{u.id}_*"))
+            if matches:
+                avatar_url = f"/api/profile/avatar/{u.id}/"
+                break
+
+    role_val = (u.role.value if hasattr(u.role, "value") else str(u.role)).lower()
+    sem_val = u.sem
+    if role_val == "student" and (sem_val is None or sem_val < 1):
+        sem_val = 1
+
     return {
         "id": u.id,
         "username": u.username,
         "email": u.email,
-        "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+        "role": role_val,
         "mobile_number": u.mobile_number,
         "usn": u.usn,
-        "sem": u.sem,
-        "avatar_url": getattr(u, "avatar_url", None),
+        "sem": sem_val,
+        "semester": sem_val,
+        "avatar_url": avatar_url,
         "bio": getattr(u, "bio", None),
     }
 

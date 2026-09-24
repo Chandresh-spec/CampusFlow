@@ -28,11 +28,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const normalizeUser = (u: any): User | null => {
+    if (!u) return null;
+    const normalized = { ...u };
+    if (normalized.id) {
+      if (!normalized.avatar_url || (!normalized.avatar_url.startsWith('http') && !normalized.avatar_url.startsWith('/api/'))) {
+        normalized.avatar_url = `/api/profile/avatar/${normalized.id}/`;
+      }
+    }
+    if (normalized.role) {
+      normalized.role = normalized.role.toLowerCase();
+    }
+    if (!normalized.sem && normalized.semester) {
+      normalized.sem = normalized.semester;
+    }
+    return normalized;
+  };
+
   useEffect(() => {
     try {
       const storedUser = getUser();
       if (storedUser) {
-        setUserState(storedUser);
+        const sanitized = normalizeUser(storedUser);
+        setUserState(sanitized);
+        if (sanitized) setUser(sanitized);
         setIsAuthenticated(true);
       } else {
         setUserState(null);
@@ -48,9 +67,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (newUser: User, access: string, refresh: string) => {
-    setUser(newUser);
+    const sanitized = normalizeUser(newUser) || newUser;
+    setUser(sanitized);
     setTokens(access, refresh);
-    setUserState(newUser);
+    setUserState(sanitized);
     setIsAuthenticated(true);
     setLoading(false);
   };
@@ -66,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...updates };
+      const updatedUser = normalizeUser({ ...user, ...updates }) || { ...user, ...updates };
       setUser(updatedUser);
       setUserState(updatedUser);
     }

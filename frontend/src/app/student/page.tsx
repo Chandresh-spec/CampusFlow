@@ -31,7 +31,8 @@ import FeatureIntroModal from '../../components/FeatureIntroModal';
 export default function StudentDashboard() {
   const { isAuthorized, isLoading } = useRoleGuard(['student']);
   const { user } = useAuth();
-  const [selectedSem, setSelectedSem] = useState<number>(1);
+  const registeredSem = Number(user?.sem || user?.semester || 1);
+  const selectedSem = registeredSem;
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [tourOpen, setTourOpen] = useState(false);
@@ -48,18 +49,12 @@ export default function StudentDashboard() {
     } catch (e) {}
   }, [user]);
 
-  useEffect(() => {
-    if (user?.sem || user?.semester) {
-      setSelectedSem(Number(user.sem || user.semester));
-    }
-  }, [user]);
-
   const { data: dashboardData, isLoading: dataLoading } = useQuery({
-    queryKey: ['studentDashboard', selectedSem, search],
+    queryKey: ['studentDashboard', registeredSem, search],
     queryFn: async () => {
       const endpoint = search 
         ? `/resource/api/student/search/?q=${encodeURIComponent(search)}` 
-        : `/resource/api/student/dashboard/?semester=${selectedSem}`;
+        : `/resource/api/student/dashboard/?semester=${registeredSem}`;
       const res = await api.get(endpoint);
       return res.data;
     },
@@ -80,6 +75,9 @@ export default function StudentDashboard() {
     : (dashboardData?.resources || dashboardData?.recent_resources || []);
 
   const filteredResources = rawResources.filter((r: any) => {
+    if (r.semester && Number(r.semester) !== registeredSem) {
+      return false;
+    }
     if (selectedSubjectId !== null && r.subject_id !== selectedSubjectId) {
       return false;
     }
@@ -121,8 +119,6 @@ export default function StudentDashboard() {
     if (ft.includes('IMG')) return <FileImage size={18} className="text-[#059669]" />;
     return <FileText size={18} className="text-[#059669]" />;
   };
-
-  const registeredSem = user?.sem || user?.semester || 1;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-24 font-sans relative">
@@ -222,38 +218,31 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* ── Semester Tabs Filter ──────────────────────────────────── */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2">
-              <Layers size={15} className="text-[#059669]" />
-              <span>Select Semester</span>
-            </h2>
-            <span className="text-xs text-slate-500">
-              Viewing Sem {selectedSem} {selectedSem === registeredSem ? '(Your Enrolled Class)' : ''}
-            </span>
+        {/* ── Enrolled Semester Notice ──────────────────────────────── */}
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#059669] border border-emerald-100 flex items-center justify-center shrink-0">
+              <GraduationCap size={24} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-slate-900">
+                  Semester {registeredSem} Study Materials
+                </h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-[#047857] px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  Enrolled Class
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Official syllabus lecture notes, slides, and exam resources for your enrolled semester.
+              </p>
+            </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setSelectedSem(s);
-                  setSelectedSubjectId(null);
-                }}
-                className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-150 shrink-0 flex items-center gap-2 ${
-                  selectedSem === s
-                    ? 'bg-[#059669] text-white shadow-sm shadow-emerald-600/30'
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200'
-                }`}
-              >
-                <span>Semester {s}</span>
-                {s === registeredSem && (
-                  <span className={`w-1.5 h-1.5 rounded-full ${selectedSem === s ? 'bg-white' : 'bg-emerald-500'}`} title="Enrolled" />
-                )}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+              {subjects.length} Enrolled Courses
+            </span>
           </div>
         </div>
 

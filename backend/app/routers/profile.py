@@ -18,7 +18,10 @@ router = APIRouter(prefix="/api", tags=["profile"])
 def format_user_profile(user: User) -> dict:
     avatar_url = None
     if user.avatar_url:
-        avatar_url = f"/api/profile/avatar/{user.id}/"
+        if user.avatar_url.startswith("http") or user.avatar_url.startswith("/api/"):
+            avatar_url = user.avatar_url
+        else:
+            avatar_url = f"/api/profile/avatar/{user.id}/"
     else:
         import glob
         for base_dir in ["/app/data", "./backend/data", "./data", "."]:
@@ -29,14 +32,20 @@ def format_user_profile(user: User) -> dict:
                     avatar_url = f"/api/profile/avatar/{user.id}/"
                     break
 
+    role_val = (user.role.value if hasattr(user.role, "value") else str(user.role)).lower()
+    sem_val = user.sem
+    if role_val == "student" and (sem_val is None or sem_val < 1):
+        sem_val = 1
+
     return {
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "role": user.role.value if hasattr(user.role, "value") else str(user.role),
+        "role": role_val,
         "mobile_number": user.mobile_number,
         "usn": user.usn,
-        "sem": user.sem,
+        "sem": sem_val,
+        "semester": sem_val,
         "avatar_url": avatar_url,
         "bio": user.bio,
         "created_at": user.created_at.isoformat() if user.created_at else None,
@@ -93,12 +102,25 @@ async def get_user_avatar(user_id: int, db: AsyncSession = Depends(get_db)):
     s3_key = target_user.avatar_url
     if "avatars/" in s3_key:
         s3_key = "avatars/" + s3_key.split("avatars/")[-1].split("?")[0]
+    elif not s3_key.startswith("http"):
+        s3_key = f"avatars/{s3_key}"
         
     if s3_key and not s3_key.startswith("http"):
-        # 2. Download from S3 with server credentials (works on private buckets)
+        # 2. Download from S3 with server credentials and cache locally
         try:
             img_bytes = await s3_service.download_file_bytes(s3_key)
             if img_bytes and len(img_bytes) > 0:
+                # Cache to local disk for sub-millisecond future loads
+                for base_dir in ["/app/data", "./backend/data", "./data", "."]:
+                    try:
+                        local_target = os.path.join(base_dir, s3_key)
+                        os.makedirs(os.path.dirname(local_target), exist_ok=True)
+                        with open(local_target, "wb") as f:
+                            f.write(img_bytes)
+                        break
+                    except Exception:
+                        pass
+
                 import io
                 from fastapi.responses import StreamingResponse
                 media_type = "image/png" if s3_key.endswith(".png") else "image/jpeg"

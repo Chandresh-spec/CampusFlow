@@ -285,7 +285,8 @@ async def get_and_verify_room_access(room_id: int, user: User, db: AsyncSession)
     room_sem = room.subject.sem.sem_nmbr if room.subject.sem else None
 
     # Strict semester isolation for students:
-    if user.role == UserRole.student:
+    user_role_str = str(user.role.value if hasattr(user.role, "value") else user.role).lower()
+    if user_role_str == "student":
         student_sem = user.sem or 1
         if room_sem is not None and room_sem != student_sem:
             raise HTTPException(
@@ -311,7 +312,8 @@ async def list_chat_groups(
     If student: strictly returns ONLY chat groups of their enrolled semester.
     If faculty: returns all groups or filtered by query parameter sem.
     """
-    if user.role == UserRole.student:
+    user_role_str = str(user.role.value if hasattr(user.role, "value") else user.role).lower()
+    if user_role_str == "student":
         student_sem = user.sem or 1
         sub_query = (
             select(Subject)
@@ -512,7 +514,8 @@ async def handle_websocket_connection(websocket: WebSocket, room_id: int):
             return
 
         room_sem = room.subject.sem.sem_nmbr if room.subject.sem else None
-        if user.role == UserRole.student:
+        user_role_str = str(user.role.value if hasattr(user.role, "value") else user.role).lower()
+        if user_role_str == "student":
             student_sem = user.sem or 1
             if room_sem is not None and room_sem != student_sem:
                 await websocket.close(
@@ -522,8 +525,7 @@ async def handle_websocket_connection(websocket: WebSocket, room_id: int):
                 return
 
         user_name = user.username
-        user_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
-        is_faculty = user.role == UserRole.faculty
+        is_faculty = user_role_str in ["faculty", "teacher", "admin"]
 
     await ws_manager.connect(room_id, websocket)
 

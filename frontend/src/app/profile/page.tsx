@@ -58,10 +58,25 @@ export default function Profile() {
         semester: user.sem || user.semester || '1',
         bio: user.bio || '',
       });
-      setAvatarUrl(user.avatar_url || '');
+      const resolvedAvatar = (user.avatar_url && (user.avatar_url.startsWith('http') || user.avatar_url.startsWith('/api/')))
+        ? user.avatar_url
+        : (user.id ? `/api/profile/avatar/${user.id}/` : '');
+      setAvatarUrl(resolvedAvatar);
       setImgError(false);
+
+      // Refresh latest profile data from backend to ensure persistent photo and details
+      api.get('/api/profile/')
+        .then((res) => {
+          if (res.data) {
+            updateUser(res.data);
+            if (res.data.avatar_url) {
+              setAvatarUrl(`${res.data.avatar_url}?t=${Date.now()}`);
+            }
+          }
+        })
+        .catch(() => {});
     }
-  }, [user]);
+  }, [user?.id]);
 
   if (isLoading || !isAuthorized) {
     return (
