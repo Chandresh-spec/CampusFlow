@@ -87,9 +87,9 @@ export default function FeatureIntroModal({
       subtitle: 'Real-time group discussion channels for every semester & subject',
       badgeIcon: Smartphone,
       description:
-        'Think of this as your official college WhatsApp, but organized cleanly for your academic coursework! Every semester and subject has a dedicated live discussion group. Students and professors chat in real-time using fast WebSockets. Clear doubts with your teachers, polish questions professionally using the AI Wand, and start or join Class Video Meetings with 1 click.',
+        'Think of this as your official college WhatsApp, but organized cleanly for your academic coursework! Every semester and subject has a dedicated live discussion group. Students and professors chat in real-time with instant delivery. Clear doubts with your teachers, polish questions professionally using the AI Wand, and start or join Class Video Meetings with 1 click.',
       tips: [
-        'WhatsApp Experience: Instant messaging, sender badges, and live WebSocket connection dot',
+        'WhatsApp Experience: Instant messaging, sender badges, and live online status indicator',
         'Semester Privacy: Channels are strictly restricted to students enrolled in that semester',
         'AI Message Polish: Click the magic wand icon to automatically rephrase questions professionally',
         '1-Click Class Video Meet: Launch Jitsi video meetings directly from the room header'
@@ -100,11 +100,11 @@ export default function FeatureIntroModal({
       id: 'materials_s3',
       icon: BookOpen,
       tag: 'Cloud Materials',
-      title: 'Course Notes & Lecture Slides on AWS S3',
-      subtitle: 'High-speed cloud downloads for syllabus notes, slides, and papers',
+      title: 'Course Notes & Verified Study Materials',
+      subtitle: 'High-speed downloads for syllabus notes, slides, and papers',
       badgeIcon: BookOpen,
       description:
-        'All your course study materials are securely hosted on high-performance AWS S3 cloud storage. Browse notes organized by Semester 1 to 8, search by topic or professor, preview file types (PDF, PPT, DOC, IMG), and download files with one click.',
+        'All your course study materials are securely hosted in high-speed cloud storage. Browse notes organized by Semester 1 to 8, search by topic or professor, preview file types (PDF, PPT, DOC, IMG), and download files with one click.',
       tips: [
         'Semester Filter: Quickly switch between Semester 1 through 8',
         'Search Bar: Instant keyword search across all subjects and professors',
@@ -134,15 +134,15 @@ export default function FeatureIntroModal({
       id: 'rag_indexing',
       icon: UploadCloud,
       tag: 'RAG Knowledge Base',
-      title: 'Course Material Uploads & RAG AI Indexing',
-      subtitle: 'Upload lecture PDFs directly to AWS S3 & auto-feed the RAG Chatbot',
+      title: 'Course Material Uploads & AI Assistant Indexing',
+      subtitle: 'Upload lecture PDFs to course library & auto-train the AI Assistant',
       badgeIcon: Cpu,
       description:
-        'Upload course materials directly to secure AWS S3 storage. Assign documents to specific semesters and subjects. Uploaded PDFs are automatically chunked, embedded, and indexed into the RAG vector store so the CampusFlow AI Chatbot can accurately answer your students’ questions based on your exact syllabus!',
+        'Upload course materials directly to secure cloud storage. Assign documents to specific semesters and subjects. Uploaded PDFs are automatically chunked, embedded, and indexed into the vector store so the CampusFlow AI Assistant can accurately answer your students’ questions based on your exact syllabus!',
       tips: [
-        'Auto RAG Indexing: PDFs are immediately searchable by student AI queries',
+        'Auto AI Indexing: PDFs are immediately searchable by student AI queries',
         'Supports PDF, PPT, Word DOC, and Diagram formats',
-        'Direct S3 upload with automatic server fallback and view tracking'
+        'Instant cloud upload with automatic processing and view tracking'
       ],
       badgeColor: 'bg-emerald-50 text-[#059669] border-emerald-200',
     },

@@ -97,9 +97,9 @@ export default function Profile() {
       setAvatarUrl(newUrl);
       setImgError(false);
       updateUser({ avatar_url: newUrl });
-      toast.success('Profile photo uploaded to S3 successfully!');
+      toast.success('Profile photo updated successfully!');
     } catch (err: any) {
-      toast.error(err.response?.data?.detail || 'Failed to upload photo to S3');
+      toast.error(err.response?.data?.detail || 'Failed to update profile photo');
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -198,7 +198,7 @@ export default function Profile() {
                     {avatarUploading && (
                       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-1 rounded-2xl z-20">
                         <Loader2 size={24} className="animate-spin text-emerald-400" />
-                        <span className="text-[10px] font-bold">Uploading to S3...</span>
+                        <span className="text-[10px] font-bold">Updating photo...</span>
                       </div>
                     )}
                   </div>
@@ -210,7 +210,7 @@ export default function Profile() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={avatarUploading}
                   className="absolute bottom-1 right-1 p-2.5 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white shadow-lg border-2 border-white transition transform hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
-                  title="Upload profile photo to S3"
+                  title="Upload profile photo"
                 >
                   <Camera size={17} />
                 </button>
@@ -237,7 +237,7 @@ export default function Profile() {
                   className="px-4 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-[#065f46] text-xs font-bold border border-emerald-200 transition flex items-center gap-1.5 shadow-xs"
                 >
                   <Upload size={14} className="text-[#059669]" />
-                  <span>{avatarUrl ? 'Change S3 Photo' : 'Upload S3 Photo'}</span>
+                  <span>{avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
                 </button>
 
                 <button
@@ -315,9 +315,9 @@ export default function Profile() {
               )}
 
               <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cloud Storage</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cloud Sync</p>
                 <p className="text-sm font-bold text-[#059669] flex items-center gap-1">
-                  <CheckCircle2 size={13} /> S3 Synced
+                  <CheckCircle2 size={13} /> Active
                 </p>
               </div>
             </div>
@@ -447,7 +447,7 @@ export default function Profile() {
                 className="p-3.5 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-xs font-bold text-slate-700 transition shadow-xs flex flex-col items-center gap-1.5"
               >
                 <Camera size={18} className="text-[#059669]" />
-                <span>Update S3 Photo</span>
+                <span>Update Photo</span>
               </button>
 
               <button

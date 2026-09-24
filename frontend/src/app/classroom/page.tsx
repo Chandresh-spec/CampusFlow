@@ -442,7 +442,7 @@ export default function Classroom() {
                         {wsStatus === 'connected' ? (
                           <>
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-emerald-700 font-bold text-[11px]">Live WebSocket</span>
+                            <span className="text-emerald-700 font-bold text-[11px]">Online</span>
                           </>
                         ) : wsStatus === 'connecting' ? (
                           <>

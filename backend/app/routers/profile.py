@@ -153,15 +153,27 @@ async def upload_avatar(
 
     s3_key = f"avatars/user_{user.id}_{uuid.uuid4().hex[:8]}.{ext}"
 
-    # Upload to AWS S3 (and local persistent cache)
-    await s3_service.upload_file_bytes(s3_key, file_bytes, content_type=content_type)
+    # 1. Save local copy immediately for instant display
+    for base_dir in ["/app/data", "./backend/data", "./data", "."]:
+        try:
+            local_target = os.path.join(base_dir, s3_key)
+            os.makedirs(os.path.dirname(local_target), exist_ok=True)
+            with open(local_target, "wb") as f:
+                f.write(file_bytes)
+            break
+        except Exception:
+            pass
 
     user.avatar_url = s3_key
     await db.commit()
     await db.refresh(user)
 
+    # 2. Upload to S3 asynchronously in the background so API responds in milliseconds
+    import asyncio
+    asyncio.create_task(s3_service.upload_file_bytes(s3_key, file_bytes, content_type=content_type))
+
     return {
-        "message": "Avatar uploaded successfully to S3",
+        "message": "Profile photo updated successfully",
         "avatar_url": f"/api/profile/avatar/{user.id}/",
         "user": format_user_profile(user)
     }

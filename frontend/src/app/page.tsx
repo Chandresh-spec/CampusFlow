@@ -90,7 +90,7 @@ export default function Home() {
         </h1>
 
         <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-2xl mb-8 leading-relaxed">
-          Centralized note distribution with high-speed AWS S3 storage, real-time semester doubt rooms, and Groq LPU powered academic AI.
+          Centralized note distribution, real-time semester doubt rooms, and AI-powered academic learning.
         </p>
 
         {/* Action Buttons */}
@@ -148,7 +148,7 @@ export default function Home() {
             </div>
             <h3 className="font-bold text-slate-900 text-base mb-1">Verified Accounts</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Role isolation with Gmail OTP and Google OAuth verification.
+              Role isolation with secure campus authentication and single sign-on.
             </p>
           </div>
         </div>

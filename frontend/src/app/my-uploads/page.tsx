@@ -205,7 +205,7 @@ export default function MyUploads() {
               My Uploaded Materials
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Manage syllabus notes, lecture slides, and question banks stored securely on AWS S3.
+              Manage syllabus notes, lecture slides, and question banks stored securely in cloud storage.
             </p>
           </div>
 
@@ -350,7 +350,7 @@ export default function MyUploads() {
                                 }
                               }}
                               className="p-2 rounded-xl text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer"
-                              title="Open / Download from S3"
+                              title="Download Resource"
                             >
                               <ExternalLink size={17} />
                             </button>
@@ -396,7 +396,7 @@ export default function MyUploads() {
                     Upload Course Resource
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Directly uploads to AWS S3 & indexes for AI Chat
+                    Uploads course notes & indexes for AI Chat
                   </p>
                 </div>
               </div>
@@ -526,7 +526,7 @@ export default function MyUploads() {
                   >
                     {uploading ? (
                       <>
-                        <Loader2 size={18} className="animate-spin" /> Uploading to S3...
+                        <Loader2 size={18} className="animate-spin" /> Uploading resource...
                       </>
                     ) : (
                       'Upload & Publish to Students'
