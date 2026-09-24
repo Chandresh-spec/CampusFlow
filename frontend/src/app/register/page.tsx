@@ -20,7 +20,6 @@ import {
   Check
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import FeatureIntroModal from '../../components/FeatureIntroModal';
 
 declare global {
   interface Window {
@@ -43,13 +42,6 @@ export default function Register() {
   const [otpSending, setOtpSending] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [showIntroModal, setShowIntroModal] = useState(false);
-  const [registeredUser, setRegisteredUser] = useState<{
-    role: string;
-    username: string;
-    nextUrl: string;
-    actionText: string;
-  } | null>(null);
   const { login } = useAuth();
   const router = useRouter();
 
@@ -95,18 +87,12 @@ export default function Register() {
                   role: role.toLowerCase(),
                 });
                 login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
-                try {
-                  localStorage.setItem('campusflow_tour_completed', 'true');
-                } catch (e) {}
                 toast.success(`Welcome to CampusFlow, ${res.data.user.username}!`);
-                const next = res.data.user.role?.toLowerCase() === 'student' ? '/student' : '/teacher';
-                setRegisteredUser({
-                  role: res.data.user.role || role,
-                  username: res.data.user.username,
-                  nextUrl: next,
-                  actionText: 'Explore My Dashboard 🚀',
-                });
-                setShowIntroModal(true);
+                if (res.data.user.role?.toLowerCase() === 'student') {
+                  router.push('/student');
+                } else {
+                  router.push('/teacher');
+                }
               } catch (err: any) {
                 toast.error(err.response?.data?.detail || 'Google sign-up failed');
               } finally {
@@ -195,37 +181,21 @@ export default function Register() {
         toast.success('Gmail verified & registration successful!');
         if (res.data?.tokens?.access) {
           login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
-          try {
-            localStorage.setItem('campusflow_tour_completed', 'true');
-          } catch (e) {}
-          const next = res.data.user.role?.toLowerCase() === 'student' ? '/student' : '/teacher';
-          setRegisteredUser({
-            role: res.data.user.role || role,
-            username: res.data.user.username || formData.username,
-            nextUrl: next,
-            actionText: 'Explore My Dashboard 🚀',
-          });
-          setShowIntroModal(true);
+          toast.success('Gmail verified & registration successful!');
+          if (res.data.user.role?.toLowerCase() === 'student') {
+            router.push('/student');
+          } else {
+            router.push('/teacher');
+          }
         } else {
-          setRegisteredUser({
-            role: role.toLowerCase(),
-            username: formData.username,
-            nextUrl: '/login',
-            actionText: 'Proceed to Sign In 🚀',
-          });
-          setShowIntroModal(true);
+          toast.success('Registration successful! Please log in.');
+          setTimeout(() => router.push('/login'), 1200);
         }
       } else {
         // Direct registration fallback
         await api.post('/api/register/', payload);
-        toast.success('Registration successful! Please explore the features below.');
-        setRegisteredUser({
-          role: role.toLowerCase(),
-          username: formData.username,
-          nextUrl: '/login',
-          actionText: 'Proceed to Sign In 🚀',
-        });
-        setShowIntroModal(true);
+        toast.success('Registration successful! Please log in.');
+        setTimeout(() => router.push('/login'), 1200);
       }
     } catch (err: any) {
       toast.error(err.response?.data?.detail || err.response?.data?.message || 'Registration failed');
@@ -527,22 +497,6 @@ export default function Register() {
       </div>
 
       {/* ── Feature Introduction Modal for Newly Registered User ──── */}
-      {showIntroModal && registeredUser && (
-        <FeatureIntroModal
-          isOpen={showIntroModal}
-          onClose={() => {
-            setShowIntroModal(false);
-            router.push(registeredUser.nextUrl);
-          }}
-          userRole={registeredUser.role}
-          userName={registeredUser.username}
-          customActionText={registeredUser.actionText}
-          onActionClick={() => {
-            setShowIntroModal(false);
-            router.push(registeredUser.nextUrl);
-          }}
-        />
-      )}
     </div>
   );
 }

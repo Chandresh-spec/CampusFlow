@@ -28,13 +28,16 @@ export default function TeacherDashboard() {
   const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     try {
-      const isCompleted = localStorage.getItem('campusflow_tour_completed') === 'true';
-      if (!isCompleted) {
+      const tourKey = `campusflow_tour_seen_${user.id || user.username}`;
+      const hasSeen = localStorage.getItem(tourKey);
+      if (!hasSeen) {
         setTourOpen(true);
+        localStorage.setItem(tourKey, 'true');
       }
     } catch (e) {}
-  }, []);
+  }, [user]);
 
   const { data, isLoading: dataLoading } = useQuery({
     queryKey: ['facultyDashboard'],

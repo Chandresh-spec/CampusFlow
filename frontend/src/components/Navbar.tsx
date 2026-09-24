@@ -27,14 +27,6 @@ export default function Navbar() {
   const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const shouldShow = localStorage.getItem('campusflow_show_welcome_tour') === 'true';
-      if (shouldShow) {
-        setTourOpen(true);
-        localStorage.removeItem('campusflow_show_welcome_tour');
-      }
-    } catch (e) {}
-
     const handleOpenTour = () => setTourOpen(true);
     window.addEventListener('campusflow_open_tour', handleOpenTour);
     return () => window.removeEventListener('campusflow_open_tour', handleOpenTour);

@@ -48,8 +48,10 @@ export default function FeatureIntroModal({
 
   const handleFinish = () => {
     try {
+      if (userName) {
+        localStorage.setItem(`campusflow_tour_seen_${userName}`, 'true');
+      }
       localStorage.setItem('campusflow_tour_completed', 'true');
-      localStorage.removeItem('campusflow_show_welcome_tour');
     } catch (e) {}
     if (onActionClick) {
       onActionClick();

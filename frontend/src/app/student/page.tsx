@@ -37,13 +37,16 @@ export default function StudentDashboard() {
   const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
     try {
-      const isCompleted = localStorage.getItem('campusflow_tour_completed') === 'true';
-      if (!isCompleted) {
+      const tourKey = `campusflow_tour_seen_${user.id || user.username}`;
+      const hasSeen = localStorage.getItem(tourKey);
+      if (!hasSeen) {
         setTourOpen(true);
+        localStorage.setItem(tourKey, 'true');
       }
     } catch (e) {}
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (user?.sem || user?.semester) {
