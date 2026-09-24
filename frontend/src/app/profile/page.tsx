@@ -93,7 +93,7 @@ export default function Profile() {
       const res = await api.post('/api/profile/avatar/', uploadData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const newUrl = res.data.avatar_url;
+      const newUrl = res.data.avatar_url ? `${res.data.avatar_url}?t=${Date.now()}` : '';
       setAvatarUrl(newUrl);
       setImgError(false);
       updateUser({ avatar_url: newUrl });

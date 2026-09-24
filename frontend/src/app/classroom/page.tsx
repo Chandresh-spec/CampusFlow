@@ -37,6 +37,7 @@ interface ChatMessage {
   sender_id: number;
   sender_name: string;
   sender_role: string;
+  sender_avatar?: string;
   content: string;
   is_faculty: boolean;
   is_me: boolean;
@@ -493,18 +494,40 @@ export default function Classroom() {
                           isMe ? 'ml-auto flex-row-reverse' : ''
                         }`}
                       >
-                        {/* Avatar */}
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 shadow-xs ${
-                            isMe
-                              ? 'bg-[#059669] text-white'
-                              : isFaculty
-                              ? 'bg-amber-500 text-white ring-2 ring-amber-200'
-                              : 'bg-slate-200 text-slate-700'
-                          }`}
-                        >
-                          {msg.sender_name?.charAt(0)?.toUpperCase() || 'U'}
-                        </div>
+                        {/* Avatar / WhatsApp-style DP */}
+                        {(() => {
+                          const avatarSrc = isMe ? (user?.avatar_url || msg.sender_avatar) : msg.sender_avatar;
+                          return (
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0 shadow-xs overflow-hidden relative ${
+                                isMe
+                                  ? 'bg-[#059669] text-white ring-2 ring-emerald-200'
+                                  : isFaculty
+                                  ? 'bg-amber-500 text-white ring-2 ring-amber-200'
+                                  : 'bg-slate-200 text-slate-700 ring-1 ring-slate-300'
+                              }`}
+                            >
+                              {avatarSrc ? (
+                                <img
+                                  src={avatarSrc}
+                                  alt={msg.sender_name}
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                    const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                  className="w-full h-full object-cover rounded-full"
+                                />
+                              ) : null}
+                              <span
+                                style={{ display: avatarSrc ? 'none' : 'flex' }}
+                                className="w-full h-full items-center justify-center"
+                              >
+                                {msg.sender_name?.charAt(0)?.toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                          );
+                        })()}
 
                         {/* Content bubble */}
                         <div className={`space-y-1 ${isMe ? 'text-right' : 'text-left'}`}>

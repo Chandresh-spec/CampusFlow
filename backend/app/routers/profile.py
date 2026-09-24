@@ -16,9 +16,18 @@ settings = get_settings()
 router = APIRouter(prefix="/api", tags=["profile"])
 
 def format_user_profile(user: User) -> dict:
-    avatar_url = user.avatar_url
-    if avatar_url and "avatars/" in avatar_url:
+    avatar_url = None
+    if user.avatar_url:
         avatar_url = f"/api/profile/avatar/{user.id}/"
+    else:
+        import glob
+        for base_dir in ["/app/data", "./backend/data", "./data", "."]:
+            avatars_dir = os.path.join(base_dir, "avatars")
+            if os.path.exists(avatars_dir):
+                matches = glob.glob(os.path.join(avatars_dir, f"user_{user.id}_*"))
+                if matches:
+                    avatar_url = f"/api/profile/avatar/{user.id}/"
+                    break
 
     return {
         "id": user.id,
@@ -62,24 +71,30 @@ async def update_profile(
 @router.get("/profile/avatar/{user_id}/")
 @router.get("/profile/avatar/{user_id}")
 async def get_user_avatar(user_id: int, db: AsyncSession = Depends(get_db)):
+    # 1. Local disk file response (super fast)
+    import glob
+    for base_dir in ["/app/data", "./backend/data", "./data", "."]:
+        avatars_dir = os.path.join(base_dir, "avatars")
+        if os.path.exists(avatars_dir):
+            matches = glob.glob(os.path.join(avatars_dir, f"user_{user_id}_*"))
+            if matches:
+                matches.sort(key=os.path.getmtime, reverse=True)
+                local_path = matches[0]
+                if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
+                    from fastapi.responses import FileResponse
+                    media_type = "image/png" if local_path.endswith(".png") else "image/jpeg"
+                    return FileResponse(path=local_path, media_type=media_type)
+
     res = await db.execute(select(User).where(User.id == user_id))
     target_user = res.scalar_one_or_none()
     if not target_user or not target_user.avatar_url:
         raise HTTPException(status_code=404, detail="Avatar not found")
         
-    s3_key = None
-    if "avatars/" in target_user.avatar_url:
-        s3_key = "avatars/" + target_user.avatar_url.split("avatars/")[-1].split("?")[0]
+    s3_key = target_user.avatar_url
+    if "avatars/" in s3_key:
+        s3_key = "avatars/" + s3_key.split("avatars/")[-1].split("?")[0]
         
-    if s3_key:
-        # 1. Local disk file response (super fast)
-        for base_dir in ["/app/data", "./backend/data", "./data", "."]:
-            local_path = os.path.join(base_dir, s3_key)
-            if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
-                from fastapi.responses import FileResponse
-                media_type = "image/png" if local_path.endswith(".png") else "image/jpeg"
-                return FileResponse(path=local_path, media_type=media_type)
-                
+    if s3_key and not s3_key.startswith("http"):
         # 2. Download from S3 with server credentials (works on private buckets)
         try:
             img_bytes = await s3_service.download_file_bytes(s3_key)
@@ -141,13 +156,13 @@ async def upload_avatar(
     # Upload to AWS S3 (and local persistent cache)
     await s3_service.upload_file_bytes(s3_key, file_bytes, content_type=content_type)
 
-    user.avatar_url = f"/api/profile/avatar/{user.id}/"
+    user.avatar_url = s3_key
     await db.commit()
     await db.refresh(user)
 
     return {
         "message": "Avatar uploaded successfully to S3",
-        "avatar_url": user.avatar_url,
+        "avatar_url": f"/api/profile/avatar/{user.id}/",
         "user": format_user_profile(user)
     }
 

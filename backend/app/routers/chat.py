@@ -406,12 +406,15 @@ async def list_messages(
         ) if m.sender else "student"
         sender_name = m.sender.username if m.sender else (m.anon_alias or "Student")
 
+        sender_avatar = f"/api/profile/avatar/{m.sender_id}/" if (m.sender and m.sender.avatar_url) else None
+
         out.append({
             "id": m.id,
             "room_id": room_id,
             "sender_id": m.sender_id,
             "sender_name": sender_name,
             "sender_role": sender_role_str,
+            "sender_avatar": sender_avatar,
             "content": m.content,
             "is_faculty": sender_role_str == "faculty",
             "is_me": m.sender_id == user.id,
@@ -446,6 +449,7 @@ async def send_message(
 
     sender_role_str = user.role.value if hasattr(user.role, "value") else str(user.role)
     created_at_iso = msg.created_at.isoformat() if msg.created_at else None
+    sender_avatar = f"/api/profile/avatar/{user.id}/" if user.avatar_url else None
 
     payload = {
         "type": "new_message",
@@ -455,6 +459,7 @@ async def send_message(
             "sender_id": user.id,
             "sender_name": user.username,
             "sender_role": sender_role_str,
+            "sender_avatar": sender_avatar,
             "content": msg.content,
             "is_faculty": user.role == UserRole.faculty,
             "created_at": created_at_iso
@@ -468,6 +473,7 @@ async def send_message(
         "sender_id": user.id,
         "sender_name": user.username,
         "sender_role": sender_role_str,
+        "sender_avatar": sender_avatar,
         "content": msg.content,
         "is_faculty": user.role == UserRole.faculty,
         "is_me": True,
@@ -555,6 +561,7 @@ async def handle_websocket_connection(websocket: WebSocket, room_id: int):
                 msg_id = msg.id
                 created_at_iso = msg.created_at.isoformat() if msg.created_at else None
 
+            sender_avatar = f"/api/profile/avatar/{user_id}/" if user.avatar_url else None
             broadcast_payload = {
                 "type": "new_message",
                 "message": {
@@ -563,6 +570,7 @@ async def handle_websocket_connection(websocket: WebSocket, room_id: int):
                     "sender_id": user_id,
                     "sender_name": user_name,
                     "sender_role": user_role_str,
+                    "sender_avatar": sender_avatar,
                     "content": content,
                     "is_faculty": is_faculty,
                     "created_at": created_at_iso
