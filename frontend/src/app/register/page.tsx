@@ -87,6 +87,10 @@ export default function Register() {
                   role: role.toLowerCase(),
                 });
                 login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+                try {
+                  localStorage.setItem('campusflow_show_welcome_tour', 'true');
+                  localStorage.removeItem('campusflow_tour_completed');
+                } catch (e) {}
                 toast.success(`Welcome to CampusFlow, ${res.data.user.username}!`);
                 if (res.data.user.role?.toLowerCase() === 'student') {
                   router.push('/student');
@@ -181,6 +185,10 @@ export default function Register() {
         toast.success('Gmail verified & registration successful!');
         if (res.data?.tokens?.access) {
           login(res.data.user, res.data.tokens.access, res.data.tokens.refresh);
+          try {
+            localStorage.setItem('campusflow_show_welcome_tour', 'true');
+            localStorage.removeItem('campusflow_tour_completed');
+          } catch (e) {}
           setTimeout(() => {
             if (res.data.user.role?.toLowerCase() === 'student') {
               router.push('/student');
@@ -189,11 +197,19 @@ export default function Register() {
             }
           }, 1000);
         } else {
+          try {
+            localStorage.setItem('campusflow_show_welcome_tour', 'true');
+            localStorage.removeItem('campusflow_tour_completed');
+          } catch (e) {}
           setTimeout(() => router.push('/login'), 1500);
         }
       } else {
         // Direct registration fallback
         await api.post('/api/register/', payload);
+        try {
+          localStorage.setItem('campusflow_show_welcome_tour', 'true');
+          localStorage.removeItem('campusflow_tour_completed');
+        } catch (e) {}
         toast.success('Registration successful! Please log in.');
         setTimeout(() => router.push('/login'), 1500);
       }

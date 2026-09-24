@@ -66,6 +66,15 @@ export default function TeacherDashboard() {
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
                   <CheckCircle size={13} /> Verified Professor
                 </span>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('campusflow_open_tour'))}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ecfdf5] hover:bg-[#d1fae5] text-[#047857] border border-emerald-300 shadow-xs transition cursor-pointer"
+                  title="View Platform Feature Guide"
+                >
+                  <Sparkles size={13} className="text-[#059669]" />
+                  <span>Platform Tour</span>
+                </button>
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">

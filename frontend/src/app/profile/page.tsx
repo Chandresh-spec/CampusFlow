@@ -16,7 +16,8 @@ import {
   Hash, 
   Calendar,
   CheckCircle2,
-  Loader2 
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 
 export default function Profile() {
@@ -105,6 +106,15 @@ export default function Profile() {
                     <p className="font-black text-slate-900 text-sm">{user.usn}</p>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('campusflow_open_tour'))}
+                  className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-4 py-2 rounded-2xl text-center text-[#059669] text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  title="View Platform Feature Guide"
+                >
+                  <Sparkles size={14} />
+                  <span>Platform Tour</span>
+                </button>
               </div>
             </div>
           </div>

@@ -16,13 +16,29 @@ import {
   ChevronDown, 
   ShieldCheck
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import FeatureIntroModal from './FeatureIntroModal';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const shouldShow = localStorage.getItem('campusflow_show_welcome_tour') === 'true';
+      if (shouldShow) {
+        setTourOpen(true);
+        localStorage.removeItem('campusflow_show_welcome_tour');
+      }
+    } catch (e) {}
+
+    const handleOpenTour = () => setTourOpen(true);
+    window.addEventListener('campusflow_open_tour', handleOpenTour);
+    return () => window.removeEventListener('campusflow_open_tour', handleOpenTour);
+  }, []);
 
   const role = (user?.role || 'student').toLowerCase();
   const isFaculty = role === 'faculty' || role === 'teacher' || role === 'admin';
@@ -157,6 +173,15 @@ export default function Navbar() {
                         <UploadCloud size={15} className="text-[#059669]" /> Manage Uploads
                       </Link>
                     )}
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        setTourOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 hover:text-emerald-800 hover:bg-emerald-50/70 rounded-xl transition font-medium text-left"
+                    >
+                      <Sparkles size={15} className="text-[#059669]" /> Platform Feature Guide
+                    </button>
                   </div>
 
                   <div className="pt-1 mt-1 border-t border-slate-100 px-1">
@@ -237,6 +262,17 @@ export default function Navbar() {
               <User size={16} className="text-slate-400" />
               <span>Profile Settings</span>
             </Link>
+
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setTourOpen(true);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-emerald-800 hover:bg-emerald-50 text-left transition"
+            >
+              <Sparkles size={16} className="text-[#059669]" />
+              <span>Platform Feature Guide</span>
+            </button>
           </div>
 
           <div className="pt-2 border-t border-slate-100">
@@ -253,6 +289,14 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* ── Feature Introduction Tour Modal ─────────────────────────── */}
+      <FeatureIntroModal
+        isOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+        userRole={role}
+        userName={username}
+      />
     </nav>
   );
 }
