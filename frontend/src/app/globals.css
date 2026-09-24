@@ -3,18 +3,28 @@
 @tailwind utilities;
 
 :root {
-  --background: #0f172a;
+  --background: #080c14;
   --foreground: #f8fafc;
 }
 
 body {
   color: var(--foreground);
   background-color: var(--background);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl;
+    @apply bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+  }
+  .glass-card {
+    @apply bg-slate-900/50 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
+  }
+  .glass-card-hover {
+    @apply transition-all duration-300 hover:border-white/[0.18] hover:bg-slate-900/70 hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)];
+  }
+  .glass-input {
+    @apply bg-white/[0.04] border border-white/[0.1] text-white placeholder-slate-400 focus:bg-white/[0.07] focus:border-violet-500/80 focus:ring-2 focus:ring-violet-500/20 transition-all;
   }
 }
 
