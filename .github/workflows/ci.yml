@@ -1,0 +1,38 @@
+
+name:CI
+
+
+on:
+   push:
+   pull_request:
+
+
+jobs:
+    test:
+      runs-on:ubuntu --latest
+
+      steps:
+        -name:checkout-code
+        uses:actions/checkout@v4
+
+        -name:setup-python
+        uses:actions/python@v5
+
+        with:
+          python-versio:"3.12"
+        
+        -name:install-dependencies
+        run:|
+            cd backend
+            pip -r install requirements.txt    
+
+        -name:run-pytest
+        run:python -m pytest -v                                                                
+
+
+
+
+
+       
+
+    
