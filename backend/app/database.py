@@ -71,20 +71,35 @@ async def init_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Safe auto-migration for added columns
-        try:
-            await conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500)"))
-        except Exception:
-            pass
-        try:
-            await conn.execute(text("ALTER TABLE users ADD COLUMN bio VARCHAR(500)"))
-        except Exception:
-            pass
+        # Safe auto-migration for added columns on users
+        for col_def in [
+            "email_verified_at TIMESTAMP",
+            "updated_at TIMESTAMP",
+            "deleted_at TIMESTAMP",
+            "avatar_url VARCHAR(500)",
+            "bio VARCHAR(500)",
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_def}"))
+            except Exception:
+                pass
 
     async with async_session_factory() as session:
         try:
+            from app.models.user import User, Profile
             from app.models.academic import Sem, Subject
             from sqlalchemy import select
+
+            # Backfill profiles for existing users who don't have one
+            try:
+                users_res = await session.execute(select(User))
+                users = users_res.scalars().all()
+                for u in users:
+                    if u.profile is None:
+                        session.add(Profile(user_id=u.id))
+                await session.commit()
+            except Exception:
+                await session.rollback()
 
             sem_res = await session.execute(select(Sem))
             if not sem_res.scalars().first():

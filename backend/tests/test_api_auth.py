@@ -17,16 +17,32 @@ async def test_register_success(async_client: AsyncClient):
     response = await async_client.post("/api/register/", json=payload)
     assert response.status_code == 201
     data = response.json()
-    assert data["message"] == "Registration successful"
-    assert "tokens" in data
-    assert "access" in data["tokens"]
-    assert "refresh" in data["tokens"]
+    assert data["requires_verification"] is True
     assert data["user"]["username"] == "new_student_01"
     assert data["user"]["role"] == "student"
 
+    # Cannot login before email is verified
+    blocked_login = await async_client.post("/api/login/", json={
+        "username": "new_student_01",
+        "password": "Password123!"
+    })
+    assert blocked_login.status_code == 403
+
+    # Verify with OTP to complete registration
+    otp_service.store_otp("register_otp_new_student01@test.com", "123456")
+    verify_resp = await async_client.post("/api/verify-register/", json={
+        "email": "new_student01@test.com",
+        "otp": "123456"
+    })
+    assert verify_resp.status_code == 201
+    vdata = verify_resp.json()
+    assert "tokens" in vdata
+    assert "access" in vdata["tokens"]
+    assert "refresh" in vdata["tokens"]
+
 
 @pytest.mark.asyncio
-async def test_register_duplicate_user(async_client: AsyncClient):
+async def test_register_duplicate_user(async_client: AsyncClient, student_user):
     payload = {
         "username": "test_student",  # already exists from conftest
         "email": "another_email@test.com",

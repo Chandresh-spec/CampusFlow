@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # Ensure backend root is on sys.path
@@ -10,7 +11,7 @@ if str(backend_path) not in sys.path:
 # Set test environment variables before importing app modules
 TEST_DB_FILE = backend_path / "test_smart_college.db"
 os.environ["SECRET_KEY"] = "test-secret-key-1234567890-very-secure"
-os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB_FILE}"
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{TEST_DB_FILE.as_posix()}"
 os.environ["REDIS_URL"] = ""
 os.environ["SQS_QUEUE_URL"] = ""
 os.environ["AWS_ACCESS_KEY_ID"] = ""
@@ -33,7 +34,7 @@ from app.services import auth_service, email_service, s3_service, sqs_service, l
 
 # Create isolated test engine and session factory
 test_engine = create_async_engine(
-    f"sqlite+aiosqlite:///{TEST_DB_FILE}",
+    f"sqlite+aiosqlite:///{TEST_DB_FILE.as_posix()}",
     connect_args={"check_same_thread": False},
     echo=False
 )
@@ -136,9 +137,14 @@ async def student_user(db_session: AsyncSession) -> User:
             sem=1,
             usn="1MS21CS001",
             mobile_number="9876543210",
-            is_active=True
+            is_active=True,
+            email_verified_at=datetime.utcnow(),
         )
         db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+    elif not user.email_verified_at:
+        user.email_verified_at = datetime.utcnow()
         await db_session.commit()
         await db_session.refresh(user)
     return user
@@ -158,9 +164,14 @@ async def student_sem2_user(db_session: AsyncSession) -> User:
             sem=2,
             usn="1MS21CS002",
             mobile_number="9876543211",
-            is_active=True
+            is_active=True,
+            email_verified_at=datetime.utcnow(),
         )
         db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+    elif not user.email_verified_at:
+        user.email_verified_at = datetime.utcnow()
         await db_session.commit()
         await db_session.refresh(user)
     return user
@@ -178,9 +189,14 @@ async def faculty_user(db_session: AsyncSession) -> User:
             hashed_password=auth_service.hash_password("Faculty123!"),
             role=UserRole.faculty,
             mobile_number="9876543212",
-            is_active=True
+            is_active=True,
+            email_verified_at=datetime.utcnow(),
         )
         db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+    elif not user.email_verified_at:
+        user.email_verified_at = datetime.utcnow()
         await db_session.commit()
         await db_session.refresh(user)
     return user
@@ -198,9 +214,14 @@ async def admin_user(db_session: AsyncSession) -> User:
             hashed_password=auth_service.hash_password("Admin123!"),
             role=UserRole.admin,
             mobile_number="9876543213",
-            is_active=True
+            is_active=True,
+            email_verified_at=datetime.utcnow(),
         )
         db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+    elif not user.email_verified_at:
+        user.email_verified_at = datetime.utcnow()
         await db_session.commit()
         await db_session.refresh(user)
     return user

@@ -4,6 +4,7 @@ Run with: python -m app.seed
 """
 
 import asyncio
+from datetime import datetime
 from sqlalchemy import select
 from app.database import async_session_factory, init_db
 from app.models.user import User, UserRole
@@ -38,7 +39,8 @@ async def seed_data():
                 email="faculty@college.edu",
                 hashed_password=hash_password("password123"),
                 role=UserRole.faculty,
-                mobile_number="9876543210"
+                mobile_number="9876543210",
+                email_verified_at=datetime.utcnow(),
             )
             session.add(faculty)
             await session.commit()
@@ -55,7 +57,8 @@ async def seed_data():
                 role=UserRole.student,
                 usn="1CR21CS045",
                 sem=5,
-                mobile_number="9876543211"
+                mobile_number="9876543211",
+                email_verified_at=datetime.utcnow(),
             )
             session.add(student)
             await session.commit()
